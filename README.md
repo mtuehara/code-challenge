@@ -108,7 +108,7 @@ Quando a moderação responde 200 com `{"status":"rejected"}`, o anúncio també
 }
 ```
 
-O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta `reason`. O cliente aceita as duas chaves e expõe o valor como `rejectionReason`. A migration `AddRejectedStatus1795536000000` amplia o `CHECK` da coluna `status` para aceitar `approved` e `rejected`; a migration inicial não foi editada. Reprovação ainda não aparece na futura listagem (T-006): a decisão é excluí-la do catálogo público e mantê-la acessível pelo detalhe.
+O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta `reason`. O cliente aceita as duas chaves e expõe o valor como `rejectionReason`. A migration `AddRejectedStatus1795536000000` amplia o `CHECK` da coluna `status` para aceitar `approved` e `rejected`; a migration inicial não foi editada. A reprovação não aparece na listagem (T-006): a decisão é excluí-la do catálogo público e mantê-la acessível pelo detalhe.
 
 ## Preço em centavos (T-005)
 
@@ -126,7 +126,7 @@ A resposta HTTP não expõe `priceCents`: o mapper `toAdResponse` devolve `price
 | `pageSize` | `20` | inteiro entre 1 e 100 |
 | `category` | — | opcional; uma das seis categorias do mock |
 
-A ordem é `createdAt DESC, id DESC`, para que a paginação seja determinística. A resposta tem `data`, `page`, `pageSize`, `total` e `totalPages`:
+A ordem é `createdAt DESC, id DESC`, para que a paginação seja determinística. Parâmetro ausente usa o padrão; valor vazio (`?page=`, `?category=`) é inválido e retorna 400. A resposta tem `data`, `page`, `pageSize`, `total` e `totalPages`; sem resultados, `total` e `totalPages` são 0:
 
 ```json
 GET /ads?page=1&pageSize=1&category=esportes
@@ -153,7 +153,7 @@ GET /ads?page=1&pageSize=1&category=esportes
 
 Query inválida retorna 400 com `details`. Uma página além do fim retorna 200 com `data: []`. Os reprovados ficam fora da listagem, mas continuam acessíveis por `GET /ads/{id}`. O acesso ao banco fica em `AdsRepository`; o serviço coordena paginação, mapper e resposta.
 
-A migration `AddListingIndexes1795708800000` cria dois índices parciais para `status = 'approved'`: um para a ordem global e outro para o filtro por categoria. Com 57 anúncios o ganho é pequeno; a estrutura existe para o crescimento e para o `EXPLAIN` da apresentação.
+A migration `AddListingIndexes1795708800000` cria dois índices parciais para `status = 'approved'`: um para a ordem global e outro para o filtro por categoria. Com 57 anúncios o planner pode preferir `Seq Scan`; os índices existem para volume maior e foram validados com o plano forçado (Index Scan sem `Sort`), não como uma promessa de ganho no seed.
 
 Olá! Que bom ter você por aqui.
 

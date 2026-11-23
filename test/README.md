@@ -40,7 +40,7 @@ Um teste com `DataSource` mockado não provaria nada disso. Por isso a suíte so
 | [`validation.test.cjs`](validation.test.cjs) | 1 | 15 payloads inválidos, 400 com `details`, zero chamadas à moderação, zero linhas, limites 10/100 e título trimado. |
 | [`price.test.cjs`](price.test.cjs) | 1 | Preço em reais na API, `priceCents` inteiro no banco, zero à esquerda, recusa de 3 casas e ausência de `priceCents` na resposta. |
 | [`money.test.cjs`](money.test.cjs) | 1 | Conversão pura `toCents`/`fromCents`, sem Nest, banco ou mock. |
-| [`listing.test.cjs`](listing.test.cjs) | 1 | Paginação, filtro por categoria, ordem `createdAt DESC, id DESC`, exclusão de reprovados, página além do fim e queries inválidas. |
+| [`listing.test.cjs`](listing.test.cjs) | 1 | Paginação, filtro por categoria, desempate por `id DESC` com `createdAt` empatado, exclusão de reprovados, categoria sem resultados, página além do fim e queries inválidas. |
 
 Total: **8 testes**.
 

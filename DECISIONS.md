@@ -55,9 +55,9 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 
 - A persistência saiu do `AdsService` para o `AdsRepository`: `create`, `save`, `findById` e `findApprovedPage`. O serviço ficou com moderação, conversão de centavos, 404, mapper e montagem da resposta. Alternativa descartada: continuar usando `DataSource.getRepository` direto no serviço; funcionava, mas espalharia `where`/`order`/`skip`/`take` na regra de aplicação assim que novas buscas aparecessem.
 - Paginação `page`/`pageSize`, 1-based, padrão 1/20, máximo 100; resposta `{data, page, pageSize, total, totalPages}`. Alternativas descartadas: `limit`/`offset` (menos legível) e cursor/keyset (overkill para o volume do desafio, que fica registrado como evolução).
-- Ordem `createdAt DESC, id DESC` para desempate determinístico. A listagem filtra `status = 'approved'`; os reprovados continuam no detalhe. Alternativa descartada: incluir reprovados no catálogo público sem autenticação, o que misturaria visões de comprador e vendedor.
+- Ordem `createdAt DESC, id DESC` para desempate determinístico. A consulta de aprovados fica no repositório (`findApprovedPage`); o serviço decide paginação, montagem da resposta e mapper. Os reprovados continuam no detalhe. Alternativa descartada: incluir reprovados no catálogo público sem autenticação, o que misturaria visões de comprador e vendedor.
 - Query validada pelo mesmo `ZodValidationPipe`: `page`/`pageSize` inválidos e categoria fora do contrato retornam 400 antes do banco. `totalPages` é `Math.ceil(total / pageSize)`; página além do fim devolve `data: []`.
-- Dois índices parciais `WHERE status = 'approved'`: `(status, "createdAt" DESC, id DESC)` e `(status, category, "createdAt" DESC, id DESC)`. Com 57 linhas o ganho é irrelevante; a decisão demonstra o caminho de evolução e combina com a ordem/filtro reais.
+- Dois índices parciais `WHERE status = 'approved'`: `(status, "createdAt" DESC, id DESC)` e `(status, category, "createdAt" DESC, id DESC)`. Com 57 linhas o planner pode preferir `Seq Scan`; os índices são para volume maior e foram validados com plano forçado (Index Scan sem `Sort`).
 - **Limite da evidência.** A suíte cobre paginação/filtro/ordem com fixtures SQL e não mede carga; `OFFSET` profundo e `COUNT(*)` continuam sendo o custo a evoluir para keyset. A migration de índices não tem teste de plano (`EXPLAIN`) automatizado.
 
 ## Testes • `node:test` e integração
@@ -65,7 +65,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - Mantivemos o runner nativo do Node (`node:test`) e testes de integração pela borda HTTP: Nest real, Postgres `anuncios_test`, migrations reais e um servidor HTTP controlado no lugar do mock. O desenho está em [`test/README.md`](test/README.md) e os helpers em [`test/support/helpers.cjs`](test/support/helpers.cjs).
 - Alternativa descartada: Jest + `@nestjs/testing` (`TestModule`) + `.spec.ts`. Exigiria dependências novas, configuração de TS/Jest e outro script; com banco real o ganho seria pequeno, e com `DataSource` mockado a suíte deixaria de provar persistência, constraints e migrations. `TestModule` continua sendo a opção se o serviço ganhar muitos providers e a necessidade de testes de unidade com DI.
 - A suíte usa `--test-concurrency=1` porque os arquivos compartilham o mesmo banco e aplicam migrations na inicialização. Testes de unidade puros (por exemplo, conversão de centavos na T-005) podem ser adicionados sem Nest, sem banco e sem dependência nova.
-- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~18 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
+- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~22 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
 
 ## Decisão transversal • Casos de uso e DTOs
 
