@@ -43,6 +43,13 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - O tipo `status` da entidade passou a ser `'approved' | 'rejected'`; `rejectionReason` continua nullable. A listagem e a exclusão de reprovados ficam para a T-006; falhas do mock permanecem 500 até a T-007.
 - **Limite da evidência.** O teste `test/rejection.test.cjs` usa servidor controlado e cobre as duas chaves de motivo. A verificação com o mock real devolveu 201, `rejectionReason: "contact_info_not_allowed"`, GET 200 e a linha no banco. O primeiro `npm test` falhou com 500 onde o teste esperava 201; depois da implementação, os cinco testes passaram.
 
+## Testes • `node:test` e integração
+
+- Mantivemos o runner nativo do Node (`node:test`) e testes de integração pela borda HTTP: Nest real, Postgres `anuncios_test`, migrations reais e um servidor HTTP controlado no lugar do mock. O desenho está em [`test/README.md`](test/README.md) e os helpers em [`test/support/helpers.cjs`](test/support/helpers.cjs).
+- Alternativa descartada: Jest + `@nestjs/testing` (`TestModule`) + `.spec.ts`. Exigiria dependências novas, configuração de TS/Jest e outro script; com banco real o ganho seria pequeno, e com `DataSource` mockado a suíte deixaria de provar persistência, constraints e migrations. `TestModule` continua sendo a opção se o serviço ganhar muitos providers e a necessidade de testes de unidade com DI.
+- A suíte usa `--test-concurrency=1` porque os arquivos compartilham o mesmo banco e aplicam migrations na inicialização. Testes de unidade puros (por exemplo, conversão de centavos na T-005) podem ser adicionados sem Nest, sem banco e sem dependência nova.
+- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~12 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
+
 ## Decisão transversal • Casos de uso e DTOs
 
 - Mantemos o `AdsService` com um método por ação (`create`, `findById` e, depois, `list`) em vez de criar um arquivo `.usecase.ts` para cada ação. Esses métodos já são os casos de uso: orquestram a moderação, a persistência e o 404. Alternativa considerada: o padrão usado na Flash, com `create-ad.usecase.ts`, `get-ad.usecase.ts` e classes de DTO; descartada nesta fase porque adicionaria arquivos, injeção e indireção sem mudar comportamento, e o avaliador valoriza proporcionalidade.

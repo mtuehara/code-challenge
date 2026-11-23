@@ -60,3 +60,15 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 **O que rejeitei ou corrigi.** Não usei 422, porque o candidato escolheu 201; não li apenas `reason`, que deixaria o motivo nulo no mock real; não editei a migration aplicada; e não tratei falha externa como rejeição. O primeiro `npm test` falhou com `500 !== 201`, que era a falha esperada. Depois da implementação, `npm test` passou nos cinco testes.
 
 **Como validei.** O teste controlado confere 201, `status`, `rejectionReason`, `Location`, `GET` e a linha no banco, inclusive a variante `reason`. Também chamei o mock real com um anúncio contendo “whatsapp”: a API respondeu 201 com `rejectionReason: "contact_info_not_allowed"`, o GET devolveu o mesmo motivo e o banco confirmou `status='rejected'`. A constraint e as duas migrations aplicadas foram conferidas no `pg_constraint`/`advertisement_migrations`. A saída real está em `specs/anuncios/t004.md`.
+
+## Refatoração dos testes • legibilidade
+
+**Prompt** — Refatore os testes para ficarem mais legíveis, sem mudar o comportamento nem afrouxar asserções. Crie um `test/README.md` explicando o desenho, os helpers, como rodar e por que não usamos Jest/`TestModule`/`.spec.ts`. Mantenha `node:test`, o banco real e o mock controlado.
+
+**O que a IA propôs.** Um helper compartilhado em `test/support/helpers.cjs` para banco, servidor de moderação, app Nest, `POST`/`GET`, contagem e limpeza; os quatro arquivos de teste passaram a usar o mesmo ciclo; e o README dos testes documentou o fluxo e as alternativas descartadas.
+
+**O que aceitei.** Os helpers, os nomes explícitos (`startTestApi`, `startModerationServer`, `connectTestDatabase`), os comentários Dado/Quando/Então e o README. As asserções existentes foram mantidas: criação aprovada, reinício, reprovação com as duas chaves, validação com 15 casos, `details`, zero chamadas à moderação, zero linhas e limites de 10/100.
+
+**O que rejeitei ou corrigi.** Não troquei para Jest, `TestModule` ou `.spec.ts`; não criei um mini-framework que escondesse o cenário; e não reduzi o número de asserções. Na primeira execução, os testes falharam com `Cannot find module './support/helpers'` porque o resolver CommonJS não acrescenta `.cjs` sozinho. Corrigi os imports para `./support/helpers.cjs`; depois `npm test` passou nos cinco testes.
+
+**Como validei.** `npm test` passou com `tests 5`, `pass 5`, `fail 0`. O `git diff` foi revisado para confirmar que os cenários e as asserções continuavam iguais; o README dos testes foi conferido contra os arquivos reais. A suíte continua dependendo do Postgres de teste e não usa o mock real.
