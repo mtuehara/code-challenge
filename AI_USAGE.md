@@ -19,3 +19,7 @@ Trabalhamos em par com Codex no planejamento, modelagem, implementação, testes
 - O candidato ainda precisa revisar o código e praticar uma alteração ao vivo. A execução pela IA não comprova domínio pessoal da solução.
 
 O smoke final passou pelos dois resultados com o mock fornecido após o ajuste. O cliente de demonstração repetiu duas chamadas após 503.
+
+## Correção do fluxo de revisão
+
+O Codex enviou oito commits diretamente à main após a aprovação do escopo. O candidato identificou que faltou a revisão humana do código. A revisão da implementação publicada continua pendente. A correção do processo foi preparada em branch separada para revisão por PR. O candidato decide o merge após examinar o diff e as evidências da versão atual.
