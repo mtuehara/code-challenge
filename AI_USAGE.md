@@ -29,6 +29,8 @@ O candidato pediu um start:dev com watcher. O Codex configurou Nodemon e verific
 
 ## T-002 • Primeira fatia de anúncios
 
+Na revisão, perguntei se o enunciado exigia um preço inteiro ou decimal. O Codex conferiu que o enunciado exige um valor positivo e que o mock recebe um número. Escolhi centavos inteiros para armazenamento e cálculos, mantendo o preço em reais nas interfaces HTTP. Atualizamos os exemplos para distinguir o comportamento atual da conversão planejada.
+
 O candidato aprovou o critério antes da implementação. O Codex escreveu um teste pela fronteira HTTP com banco real isolado e moderação controlada. O primeiro npm test falhou com 404 onde esperava 201. Depois de implementar cliente Axios, migration, serviço e controller, os dois testes passaram, incluindo a consulta após reiniciar o Nest.
 
 A chamada externa foi conferida contra o contrato documentado. Na verificação real, um container antigo ocupava a porta 8787. Depois de liberar a porta e recriar a instância do mock, a API retornou 201 com approved e o GET retornou os mesmos dados com 200. A inspeção do mock se limitou ao setup, aos logs e ao contrato HTTP.
