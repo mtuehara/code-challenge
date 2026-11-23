@@ -10,7 +10,7 @@ npm ci
 npm test
 ```
 
-O teste compila o NestJS, inicia um servidor em porta livre e verifica o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente.
+Os testes compilam o NestJS, iniciam um servidor em porta livre e verificam o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente.
 
 Para iniciar a API local, execute `npm start` e mantenha o terminal aberto. O comando compila a aplicação e imprime a URL de verificação. Abra [GET /health](http://localhost:3000/health) no navegador. A resposta esperada é HTTP 200 com `{"status":"ok"}`. Essa rota verifica se o processo Nest atende HTTP. A conexão com o banco é verificada separadamente pela suíte.
 
@@ -63,7 +63,32 @@ Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`.
 
 Um UUID inexistente retorna 404 e um ID malformado retorna 400. A suíte chama a moderação por HTTP contra um servidor controlado, reinicia o Nest e recupera o anúncio usando a mesma base. Ela remove somente o registro criado pelo teste.
 
-Esta fatia cobre entrada válida e aprovação. Reprovação, validações completas, tratamento específico de falhas externas e listagem serão entregues nas próximas fatias. Por enquanto, uma resposta diferente de aprovação ou falha do mock resulta em 500 e interrompe a criação antes da gravação.
+Esta fatia cobre entrada válida e aprovação. A T-003 acrescenta a validação de entrada. Reprovação, listagem e tratamento específico de falhas externas serão entregues nas próximas fatias. Por enquanto, uma resposta diferente de aprovação ou falha do mock resulta em 500 e interrompe a criação antes da gravação.
+
+## Validação de entrada (T-003)
+
+`POST /ads` valida o corpo antes de chamar a moderação. As regras são:
+
+- `title`: string, com espaços nas pontas removidos, entre 10 e 100 caracteres; o banco recebe o título já trimado;
+- `description`: string não vazia;
+- `price`: número JSON finito, maior que zero e com no máximo 2 casas decimais;
+- `category`: uma das categorias do mock (`eletronicos`, `moveis`, `veiculos`, `imoveis`, `esportes`, `colecionaveis`); as faixas de preço continuam sendo responsabilidade da moderação;
+- `images`: lista com ao menos uma string não vazia.
+
+Campos desconhecidos são ignorados. Payload inválido retorna 400 com os campos problemáticos e **não** chama a moderação nem grava anúncio:
+
+```json
+{
+  "statusCode": 400,
+  "error": "Bad Request",
+  "message": "Dados inválidos.",
+  "details": [
+    { "field": "title", "message": "O título deve ter entre 10 e 100 caracteres." }
+  ]
+}
+```
+
+O teste `test/validation.test.cjs` cobre título, descrição, preço, categoria e imagens, além dos limites de 10 e 100 caracteres. A fatia ainda não altera o armazenamento do preço: a T-005 passará a guardar centavos.
 
 Olá! Que bom ter você por aqui.
 

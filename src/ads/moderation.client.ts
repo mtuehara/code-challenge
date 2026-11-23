@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { CreateAdInput } from './ad.entity';
+import { CreateAdInput } from './ad.schema';
 
 @Injectable()
 export class ModerationClient {

@@ -36,3 +36,15 @@ O candidato aprovou o critério antes da implementação. O Codex escreveu um te
 A chamada externa foi conferida contra o contrato documentado. Na verificação real, um container antigo ocupava a porta 8787. Depois de liberar a porta e recriar a instância do mock, a API retornou 201 com approved e o GET retornou os mesmos dados com 200. A inspeção do mock se limitou ao setup, aos logs e ao contrato HTTP.
 
 A implementação fica em PR próprio para revisão humana. O cenário sugerido é acompanhar a ordem entre aprovação e gravação e verificar por que o GET continua funcionando depois de fechar e reabrir a aplicação.
+
+## T-003 • Validação de entrada
+
+**Prompt** — Implemente a T-003 com teste pela API antes do código. O teste deve falhar porque hoje um anúncio inválido é aceito com 201. Valide título de 10 a 100 caracteres depois do `trim`, descrição não vazia, preço positivo com no máximo 2 casas, categoria entre as seis do mock e ao menos uma imagem. Use o Zod que já está no manifesto, não instale dependência e não altere o mock.
+
+**O que a IA propôs.** Um schema Zod em `src/ads/ad.schema.ts`, um pipe que devolve 400 com `details`, e a retirada do `CreateAdInput` de dentro da entidade. O título passou a ser trimado antes de contar e o valor persistido é o trimado. A categoria virou uma allowlist local; as faixas de preço continuam na moderação.
+
+**O que aceitei.** O schema e o pipe, a validação de categoria antes da rede e a resposta 400 com `details`. O teste cobre 15 payloads inválidos, os limites de 10 e 100 caracteres, a chamada à moderação com o título trimado e a ausência de linhas para payload inválido.
+
+**O que rejeitei ou corrigi.** Não usei `class-validator` nem instalei dependência; não dupliquei as faixas de preço do mock; não arredondei `800.255`; e mantive o `CreateAdInput` fora da entidade, para não acoplar o contrato HTTP à persistência. O primeiro `npm test` falhou com `201 !== 400` no caso de título com 9 caracteres, que era exatamente a falha esperada. Depois da implementação, `npm test` passou nos quatro testes.
+
+**Como validei.** A falha foi observada antes da implementação; o teste verifica status 400, `statusCode`, `error`, `message`, `details`, contador de chamadas da moderação igual a zero e `count(*)` igual a zero. O caso válido confirma 201, título trimado na resposta, título trimado no payload enviado à moderação e título trimado no banco. A saída real está em `specs/anuncios/t003.md`.
