@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "prestart": "npm run build",
     "start": "node dist/main.js",
     "test": "npm run build && node --test test/*.test.cjs"
   },

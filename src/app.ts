@@ -1,8 +1,16 @@
 import 'reflect-metadata';
-import { Module } from '@nestjs/common';
+import { Controller, Get, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
-@Module({})
+@Controller('health')
+class HealthController {
+  @Get()
+  health() {
+    return { status: 'ok' };
+  }
+}
+
+@Module({ controllers: [HealthController] })
 class AppModule {}
 
 export function createApp() {

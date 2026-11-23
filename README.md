@@ -10,7 +10,11 @@ npm ci
 npm test
 ```
 
-O teste compila o NestJS, inicia um servidor em porta livre e verifica o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente. Para executar o servidor após o build, use `npm start` (porta 3000 por padrão, configurável com `PORT`). Nesta etapa a raiz responde 404; as rotas de anúncios entram nos próximos PRs.
+O teste compila o NestJS, inicia um servidor em porta livre e verifica o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente.
+
+Para iniciar a API local, execute `npm start` e mantenha o terminal aberto. O comando compila a aplicação e imprime a URL de verificação. Abra [GET /health](http://localhost:3000/health) no navegador. A resposta esperada é HTTP 200 com `{"status":"ok"}`. Essa rota verifica se o processo Nest atende HTTP. A conexão com o banco é verificada separadamente pela suíte.
+
+Se aparecer `EADDRINUSE`, a porta já está ocupada. No PowerShell, use `$env:PORT = '3001'` antes de `npm start` e abra a URL impressa no terminal.
 
 Olá! Que bom ter você por aqui.
 

@@ -41,3 +41,4 @@ O Codex preparou o módulo inicial do NestJS, o Compose, as instruções e o [te
 Pedi que cada tarefa passasse por revisão humana antes do merge. Na T-001, o Codex preparou a branch, o diff e as evidências de execução. Cabe a mim conferir se consigo reproduzir o resultado e explicar a mudança antes de integrá-la. Registramos essa divisão em [AGENTS.md](AGENTS.md).
 
 A revisão encontrou uma omissão concreta no commit `16f6602`: a escolha da stack estava no código, mas faltavam `DECISIONS.md` e `AI_USAGE.md`. O Codex conferiu a árvore do commit e acrescentou os dois registros na mesma branch para nova leitura.
+Ao tentar iniciar o Nest para consultar o healthcheck, o candidato identificou uma lacuna no setup. O Codex confirmou a porta 3000 ocupada pela API anterior e reproduziu o 404 em GET /health no Nest da T-001. Após adicionar a rota, npm test passou e a consulta local respondeu 200 com {"status":"ok"}.
