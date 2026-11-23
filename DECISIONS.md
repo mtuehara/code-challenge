@@ -33,3 +33,20 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - A categoria é validada localmente contra as seis categorias do mock para devolver 400 antes da chamada externa. As faixas de preço continuam na moderação, conforme `AGENTS.md`. Alternativa descartada: deixar a categoria para a moderação e traduzir o 400 externo, o que gastaria uma chamada de rede para um erro previsível.
 - Erro de validação: 400 com `{statusCode, error, message, details}`; a moderação não é chamada e nenhuma linha é gravada. Campos desconhecidos são ignorados. Alternativa descartada: corpo default do Nest, que mistura formatos entre validação, 404 e 503.
 - **Limite da evidência.** O teste `test/validation.test.cjs` usa um servidor de moderação controlado e o Postgres de teste; não usa o mock real. A T-004 cobre reprovação e a T-005 cobre centavos. O primeiro `npm test` falhou com 201 onde o teste esperava 400; depois da implementação, os quatro testes passaram.
+
+## T-004 • Reprovação persistida
+
+- O candidato escolheu `201` para anúncio reprovado, com `status: "rejected"` e `Location`, em vez de `422`. O recurso é criado e persiste; o status e o motivo ficam no corpo. Alternativa descartada: `422`, que sinaliza rejeição mas ou não persiste ou devolve um código que normalmente significa “não processei”.
+- O cliente passou a devolver um resultado (`approved` ou `rejected` com motivo), em vez de lançar erro para qualquer status diferente de `approved`. O serviço grava `status` e `rejectionReason` na mesma operação; o controller não mudou e o 201 continua sendo o padrão do `POST`.
+- O mock real devolve `rejection_reason`; o `API.md` documenta `reason`. O cliente lê `rejection_reason` primeiro e `reason` como fallback, e a API expõe `rejectionReason`. Alternativa descartada: ler apenas `reason`, que deixaria o motivo nulo no mock real.
+- Migration nova `AddRejectedStatus1795536000000` troca o `CHECK (status = 'approved')` por `CHECK (status IN ('approved', 'rejected'))`. A migration inicial não foi editada. O `down` restaura a restrição antiga e só é seguro se não houver reprovados; isso está documentado no código.
+- O tipo `status` da entidade passou a ser `'approved' | 'rejected'`; `rejectionReason` continua nullable. A listagem e a exclusão de reprovados ficam para a T-006; falhas do mock permanecem 500 até a T-007.
+- **Limite da evidência.** O teste `test/rejection.test.cjs` usa servidor controlado e cobre as duas chaves de motivo. A verificação com o mock real devolveu 201, `rejectionReason: "contact_info_not_allowed"`, GET 200 e a linha no banco. O primeiro `npm test` falhou com 500 onde o teste esperava 201; depois da implementação, os cinco testes passaram.
+
+## Decisão transversal • Casos de uso e DTOs
+
+- Mantemos o `AdsService` com um método por ação (`create`, `findById` e, depois, `list`) em vez de criar um arquivo `.usecase.ts` para cada ação. Esses métodos já são os casos de uso: orquestram a moderação, a persistência e o 404. Alternativa considerada: o padrão usado na Flash, com `create-ad.usecase.ts`, `get-ad.usecase.ts` e classes de DTO; descartada nesta fase porque adicionaria arquivos, injeção e indireção sem mudar comportamento, e o avaliador valoriza proporcionalidade.
+- O `ad.schema.ts` é o DTO de entrada: o Zod valida em runtime, infere o tipo e produz os detalhes do 400. Não criamos um `.dto.ts` separado com `class-validator`; isso duplicaria a mesma regra em dois formatos. Alternativa considerada: DTO com decorators e `ValidationPipe`; descartada por exigir dependências novas e mais cerimônia.
+- Um contrato de saída explícito (mapper `AdResponse`) passa a valer quando a T-005 converter centavos e a entidade deixar de ser devolvida diretamente. Não é um DTO de entrada extra; é a borda de resposta.
+- **Critério para reavaliar:** mais de ~6 endpoints, transações com múltiplos colaboradores, autorização ou políticas que variem por ação. Antes disso, o custo de um caso de uso por arquivo não se paga.
+- A reorganização de pastas em `infra/db`/`services` não foi decidida nesta fatia; a estrutura feature-first atual continua valendo até uma decisão explícita.

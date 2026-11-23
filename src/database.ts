@@ -23,12 +23,31 @@ class CreateAdvertisements1795449600000 implements MigrationInterface {
   }
 }
 
+class AddRejectedStatus1795536000000 implements MigrationInterface {
+  async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('ALTER TABLE advertisements DROP CONSTRAINT advertisements_status_check');
+    await queryRunner.query(`
+      ALTER TABLE advertisements
+      ADD CONSTRAINT advertisements_status_check CHECK (status IN ('approved', 'rejected'))
+    `);
+  }
+
+  async down(queryRunner: QueryRunner): Promise<void> {
+    // O rollback só é seguro se não houver anúncios com status rejected.
+    await queryRunner.query('ALTER TABLE advertisements DROP CONSTRAINT advertisements_status_check');
+    await queryRunner.query(`
+      ALTER TABLE advertisements
+      ADD CONSTRAINT advertisements_status_check CHECK (status = 'approved')
+    `);
+  }
+}
+
 export async function connectDatabase(): Promise<DataSource> {
   const database = new DataSource({
     type: 'postgres',
     url: process.env.DATABASE_URL ?? 'postgres://anuncios:local_dev@127.0.0.1:5432/anuncios',
     entities: [Ad],
-    migrations: [CreateAdvertisements1795449600000],
+    migrations: [CreateAdvertisements1795449600000, AddRejectedStatus1795536000000],
     migrationsTableName: 'advertisement_migrations',
     migrationsRun: true,
     synchronize: false,
