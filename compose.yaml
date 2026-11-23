@@ -1,0 +1,35 @@
+services:
+  postgres-test:
+    profiles: ["test"]
+    image: postgres:16
+    environment:
+      POSTGRES_DB: anuncios_test
+      POSTGRES_USER: anuncios
+      POSTGRES_PASSWORD: local_dev
+    ports:
+      - "127.0.0.1:5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "anuncios", "-d", "anuncios_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: anuncios
+      POSTGRES_USER: anuncios
+      POSTGRES_PASSWORD: local_dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anuncios -d anuncios"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  postgres_data:
