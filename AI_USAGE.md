@@ -26,3 +26,13 @@ Ao tentar abrir o healthcheck, encontrei outra lacuna. O primeiro teste aceitava
 
 Pedi que cada tarefa chegasse em uma branch própria para eu revisar o diff e decidir o merge. A revisão da T-001 apontou que o setup já existia, mas os documentos de decisões e uso de IA ainda faltavam. O Codex conferiu a árvore do commit `16f6602` e acrescentou os registros no mesmo PR. O fluxo de revisão está descrito em [AGENTS.md](AGENTS.md).
 O candidato pediu um start:dev com watcher. O Codex configurou Nodemon e verificou o reinício automático ao atualizar a data de src/app.ts. Após recompilar, GET /health na porta temporária 3011 devolveu {"status":"ok"}.
+
+## T-002 • Primeira fatia de anúncios
+
+Na revisão, perguntei se o enunciado exigia um preço inteiro ou decimal. O Codex conferiu que o enunciado exige um valor positivo e que o mock recebe um número. Escolhi centavos inteiros para armazenamento e cálculos, mantendo o preço em reais nas interfaces HTTP. Atualizamos os exemplos para distinguir o comportamento atual da conversão planejada.
+
+O candidato aprovou o critério antes da implementação. O Codex escreveu um teste pela fronteira HTTP com banco real isolado e moderação controlada. O primeiro npm test falhou com 404 onde esperava 201. Depois de implementar cliente Axios, migration, serviço e controller, os dois testes passaram, incluindo a consulta após reiniciar o Nest.
+
+A chamada externa foi conferida contra o contrato documentado. Na verificação real, um container antigo ocupava a porta 8787. Depois de liberar a porta e recriar a instância do mock, a API retornou 201 com approved e o GET retornou os mesmos dados com 200. A inspeção do mock se limitou ao setup, aos logs e ao contrato HTTP.
+
+A implementação fica em PR próprio para revisão humana. O cenário sugerido é acompanhar a ordem entre aprovação e gravação e verificar por que o GET continua funcionando depois de fechar e reabrir a aplicação.

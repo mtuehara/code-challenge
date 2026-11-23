@@ -14,3 +14,13 @@ TypeORM e Zod já constam no manifesto para as próximas fatias. TypeORM será u
 **Limite da evidência.** O [teste de ambiente](test/setup.test.cjs) abre o Nest em porta livre e espera 404 na raiz. Depois, o próprio teste executa `SELECT current_database()` e exige `anuncios_test`. Isso verifica HTTP e isolamento da conexão de teste. A persistência de um anúncio pela aplicação será verificada na T-002.
 Atualização da T-001: o teste passou a verificar GET /health com 200 e {"status":"ok"} no lugar do 404 histórico. A rota verifica a disponibilidade HTTP do processo; a suíte continua conferindo o Postgres separadamente.
 Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.json. Cada alteração executa npm start, incluindo a compilação TypeScript com os metadados de decorators do Nest.
+
+## T-002 • Aprovação e persistência
+
+- O candidato aprovou o critério de criar, moderar, persistir e consultar após reiniciar o Nest. O controller cuida de HTTP e Location. O serviço coordena a moderação e a gravação. Usamos diretamente o repository do TypeORM.
+- Axios foi solicitado pelo candidato para centralizar baseURL e timeout no cliente da moderação. A alternativa discutida foi fetch. O cliente envia somente os quatro campos previstos no contrato externo e exige HTTP 200 com status approved.
+- A migration cria advertisements e roda durante a inicialização. synchronize fica desabilitado. Os testes rodam sequencialmente para evitar duas inicializações concorrentes aplicando a migration na mesma base. Múltiplas réplicas exigiriam executar migrations em uma etapa separada.
+- Para esta fatia, escolhemos numeric no Postgres e mantemos price em reais na API. A alternativa discutida anteriormente foi centavos inteiros. Numeric preserva o decimal armazenado, enquanto a interface JSON segue a precisão de number do JavaScript. A política completa de precisão e validação será fechada na fatia de validações.
+- Na revisão da T-002, o candidato escolheu centavos inteiros para armazenamento e cálculos. O enunciado exige preço positivo, e o contrato do mock especifica apenas `number`. O campo `price` continua em reais na API e no mock. A mudança pendente deve validar a precisão na entrada, converter pela representação decimal sem multiplicação em ponto flutuante e usar inteiros na lógica de negócio.
+- O POST aguarda a aprovação antes de inserir. A conexão com o banco é encerrada junto com a aplicação. O teste fecha e reabre o Nest para conferir que o GET depende da persistência.
+- A restrição de status na migration admite approved nesta fatia. A próxima migration deverá acrescentar rejected quando implementarmos a reprovação com motivo.
