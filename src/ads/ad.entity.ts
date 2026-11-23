@@ -1,13 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm';
 
-export interface CreateAdInput {
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  images: string[];
-}
-
 @Entity('advertisements')
 export class Ad {
   @PrimaryColumn('uuid')

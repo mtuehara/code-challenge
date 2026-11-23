@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
-import { Ad, CreateAdInput } from './ad.entity';
+import { Ad } from './ad.entity';
+import { CreateAdInput } from './ad.schema';
 import { ModerationClient } from './moderation.client';
 
 @Injectable()
