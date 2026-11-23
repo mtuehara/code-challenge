@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
 import { connectDatabase } from './database';
 import { AdsController } from './ads/ads.controller';
+import { AdsRepository } from './ads/ads.repository';
 import { AdsService } from './ads/ads.service';
 import { ModerationClient } from './ads/moderation.client';
 
@@ -19,6 +20,7 @@ class HealthController {
   controllers: [HealthController, AdsController],
   providers: [
     AdsService,
+    AdsRepository,
     ModerationClient,
     { provide: DataSource, useFactory: connectDatabase },
   ],
