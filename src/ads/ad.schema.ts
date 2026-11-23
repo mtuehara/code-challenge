@@ -41,3 +41,24 @@ export const createAdSchema = z.object({
 });
 
 export type CreateAdInput = z.infer<typeof createAdSchema>;
+
+const pageSchema = z.coerce
+  .number({ message: 'A página deve ser um número inteiro maior ou igual a 1.' })
+  .int({ message: 'A página deve ser um número inteiro maior ou igual a 1.' })
+  .min(1, { message: 'A página deve ser um número inteiro maior ou igual a 1.' })
+  .default(1);
+
+const pageSizeSchema = z.coerce
+  .number({ message: 'O tamanho da página deve ser um número inteiro entre 1 e 100.' })
+  .int({ message: 'O tamanho da página deve ser um número inteiro entre 1 e 100.' })
+  .min(1, { message: 'O tamanho da página deve ser um número inteiro entre 1 e 100.' })
+  .max(100, { message: 'O tamanho da página deve ser um número inteiro entre 1 e 100.' })
+  .default(20);
+
+export const listAdsQuerySchema = z.object({
+  page: pageSchema,
+  pageSize: pageSizeSchema,
+  category: z.enum(AD_CATEGORIES, { message: 'Categoria inválida.' }).optional(),
+});
+
+export type ListAdsQuery = z.infer<typeof listAdsQuerySchema>;

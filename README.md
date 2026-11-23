@@ -63,7 +63,7 @@ Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`.
 
 Um UUID inexistente retorna 404 e um ID malformado retorna 400. A suíte chama a moderação por HTTP contra um servidor controlado, reinicia o Nest e recupera o anúncio usando a mesma base. Ela remove somente o registro criado pelo teste.
 
-Esta fatia cobre entrada válida e aprovação. A T-003 acrescenta a validação de entrada e a T-004 a reprovação persistida. Listagem e tratamento específico de falhas externas serão entregues nas próximas fatias. Por enquanto, uma falha do mock (400, 429, 500 ou timeout) resulta em 500 e interrompe a criação antes da gravação.
+As T-002 a T-006 cobrem criação, validação, aprovação, reprovação e listagem. O tratamento específico de falhas externas será entregue na próxima fatia. Por enquanto, uma falha do mock (400, 429, 500 ou timeout) resulta em 500 e interrompe a criação antes da gravação.
 
 ## Validação de entrada (T-003)
 
@@ -115,6 +115,45 @@ O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta
 `price` continua sendo um número em reais na entrada e na saída. No banco, a coluna passou a ser `priceCents integer`: `800.25` vira `80025`, `0.1` vira `10` e `1` vira `100`. A migration `AddPriceCents1795622400000` adiciona a coluna, faz o backfill das linhas existentes, cria o `CHECK ("priceCents" > 0)` e remove a coluna `numeric` antiga. Ela recusa dados legados com mais de 2 casas decimais em vez de arredondar silenciosamente.
 
 A resposta HTTP não expõe `priceCents`: o mapper `toAdResponse` devolve `price` em reais. A conversão de entrada usa a string decimal (`"800.25"` → `80025`), sem `price * 100` em ponto flutuante. Preço com mais de 2 casas continua retornando 400.
+
+## Listagem (T-006)
+
+`GET /ads` lista somente anúncios aprovados, com paginação e filtro opcional por categoria:
+
+| Parâmetro | Padrão | Regra |
+|---|---|---|
+| `page` | `1` | inteiro ≥ 1; 1-based |
+| `pageSize` | `20` | inteiro entre 1 e 100 |
+| `category` | — | opcional; uma das seis categorias do mock |
+
+A ordem é `createdAt DESC, id DESC`, para que a paginação seja determinística. A resposta tem `data`, `page`, `pageSize`, `total` e `totalPages`:
+
+```json
+GET /ads?page=1&pageSize=1&category=esportes
+{
+  "data": [
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "title": "Anuncio intermediario de esportes",
+      "description": "Descrição do anúncio de teste.",
+      "price": 200,
+      "category": "esportes",
+      "images": ["https://example.org/teste.jpg"],
+      "status": "approved",
+      "rejectionReason": null,
+      "createdAt": "2026-01-02T10:00:00.000Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 1,
+  "total": 2,
+  "totalPages": 2
+}
+```
+
+Query inválida retorna 400 com `details`. Uma página além do fim retorna 200 com `data: []`. Os reprovados ficam fora da listagem, mas continuam acessíveis por `GET /ads/{id}`. O acesso ao banco fica em `AdsRepository`; o serviço coordena paginação, mapper e resposta.
+
+A migration `AddListingIndexes1795708800000` cria dois índices parciais para `status = 'approved'`: um para a ordem global e outro para o filtro por categoria. Com 57 anúncios o ganho é pequeno; a estrutura existe para o crescimento e para o `EXPLAIN` da apresentação.
 
 Olá! Que bom ter você por aqui.
 

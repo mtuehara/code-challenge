@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Ad } from './ad.entity';
-import { AdResponse, toAdResponse } from './ad.response';
+import { AdResponse, ListAdsResponse, toAdResponse } from './ad.response';
 import { AdsRepository } from './ads.repository';
-import { CreateAdInput } from './ad.schema';
+import { CreateAdInput, ListAdsQuery } from './ad.schema';
 import { toCents } from './money';
 import { ModerationClient } from './moderation.client';
 
@@ -35,5 +35,22 @@ export class AdsService {
     const ad = await this.ads.findById(id);
     if (!ad) throw new NotFoundException('Anúncio inexistente.');
     return toAdResponse(ad);
+  }
+
+  async list(query: ListAdsQuery): Promise<ListAdsResponse> {
+    const skip = (query.page - 1) * query.pageSize;
+    const [ads, total] = await this.ads.findApprovedPage({
+      category: query.category,
+      skip,
+      take: query.pageSize,
+    });
+
+    return {
+      data: ads.map(toAdResponse),
+      page: query.page,
+      pageSize: query.pageSize,
+      total,
+      totalPages: Math.ceil(total / query.pageSize),
+    };
   }
 }
