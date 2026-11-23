@@ -35,7 +35,7 @@ O candidato aprovou o critério antes da implementação. O Codex escreveu um te
 
 A chamada externa foi conferida contra o contrato documentado. Na verificação real, um container antigo ocupava a porta 8787. Depois de liberar a porta e recriar a instância do mock, a API retornou 201 com approved e o GET retornou os mesmos dados com 200. A inspeção do mock se limitou ao setup, aos logs e ao contrato HTTP.
 
-A implementação fica em PR próprio para revisão humana. O cenário sugerido é acompanhar a ordem entre aprovação e gravação e verificar por que o GET continua funcionando depois de fechar e reabrir a aplicação.
+A implementação foi integrada pelo PR #5. O cenário sugerido é acompanhar a ordem entre aprovação e gravação e verificar por que o GET continua funcionando depois de fechar e reabrir a aplicação.
 
 ## T-003 • Validação de entrada
 
@@ -93,7 +93,7 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 
 **O que aceitei.** O repositório, a paginação 1-based, a ordem com desempate por `id`, a exclusão de reprovados, a validação Zod da query e os dois índices parciais.
 
-**O que rejeitei ou corrigi.** Não incluí reprovados na listagem; não usei `limit`/`offset`; não adicionei keyset/cursor; não coloquei paginação, mapper ou resposta no repositório; e não deixei `where`/`order`/`skip`/`take` no serviço. O filtro `status = 'approved'` faz parte da consulta `findApprovedPage`, porque a listagem pública é o contrato dela. O primeiro `npm test` da listagem falhou com `404 !== 200`; era a falha esperada antes da rota.
+**O que rejeitei ou corrigi.** Não incluí reprovados na listagem; mantive `page` e `pageSize` no contrato público; não adicionei keyset/cursor; não coloquei paginação, mapper ou resposta no repositório; e deixei a consulta ordenada no repositório. O serviço calcula o deslocamento e passa `skip` e `take` ao repositório. O filtro `status = 'approved'` faz parte da consulta `findApprovedPage`, porque a listagem pública é o contrato dela. O primeiro `npm test` da listagem falhou com `404 !== 200`; era a falha esperada antes da rota.
 
 **Como validei.** `npm test` → `tests 8`, `pass 8`, `fail 0`. O teste `listing.test.cjs` insere cinco fixtures por SQL (quatro aprovados, sendo dois com o mesmo `createdAt`, e um reprovado), verifica as duas páginas, o filtro por categoria, os padrões, `pageSize=100`, categoria sem resultados, página além do fim, doze queries inválidas e que `GET /ads` não chama a moderação. Também conferi no banco os índices parciais e as quatro migrations; o banco de teste terminou limpo.
 
@@ -128,3 +128,7 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 O candidato pediu ao Codex que comparasse o projeto com o enunciado original e corrigisse os problemas a partir da main atualizada. O Codex reproduziu o erro de preço por HTTP e implementou a ampliação da coluna. O comando `node --test --test-name-pattern="preço alto" test/price.test.cjs` encontrou 500 onde se esperava 201. Depois da migration, `npm test` passou nos 11 testes, incluindo a leitura do preço e do motivo pelo detalhe.
 
 Na segunda correção, o Codex usou um servidor HTTP controlado para devolver uma reprovação incompleta. `node --test --test-name-pattern="sem motivo" test/rejection.test.cjs` retornou 201 onde se esperava 502. Depois da correção, `npm test` passou nos 12 testes. Com o mock fornecido e `ERROR_RATE=0`, o teste manual de R$ 21.474.836,48 retornou 201 na criação e 200 no detalhe com o mesmo preço e o motivo `price_out_of_range`.
+
+## Revisão da documentação
+
+Após o merge do PR #15, o candidato pediu ao Codex que revisasse todos os arquivos Markdown. O Codex confrontou os estados das etapas com o histórico da main, o exemplo de listagem com as fixtures e o guia de execução com os scripts do projeto. As contagens registradas como evidência em cada etapa correspondem à suíte daquele PR.
