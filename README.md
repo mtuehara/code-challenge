@@ -92,7 +92,7 @@ O teste `test/validation.test.cjs` cobre título, descrição, preço, categoria
 
 ## Reprovação (T-004)
 
-Quando a moderação responde 200 com `{"status":"rejected"}`, o anúncio também é gravado, mas com `status: "rejected"` e o motivo em `rejectionReason`. O `POST /ads` continua retornando 201 com `Location: /ads/{id}`, e o `GET /ads/{id}` devolve o mesmo recurso. Exemplo:
+Quando a moderação responde 200 com `{"status":"rejected","reason":"price_out_of_range"}` ou outra reprovação com motivo, o anúncio também é gravado, mas com `status: "rejected"` e o motivo em `rejectionReason`. O `POST /ads` continua retornando 201 com `Location: /ads/{id}`, e o `GET /ads/{id}` devolve o mesmo recurso. Exemplo:
 
 ```json
 {
@@ -166,7 +166,7 @@ O `POST /ads` aguarda a moderação, mas não transforma falha técnica em 500 g
 | `200 approved` | persiste aprovado e retorna 201 |
 | `200 rejected` | persiste reprovado com motivo e retorna 201 |
 | `429`, `5xx`, timeout ou erro de rede | tenta de novo uma vez; respeita `Retry-After` (teto de 1 s) no 429; depois de duas tentativas retorna **503** com `Retry-After: 1` e **não grava** |
-| `400` ou `200` com status desconhecido | **502**, sem retry e sem gravar |
+| `400`, `200` com status desconhecido ou `rejected` sem motivo textual preenchido | **502**, sem retry e sem gravar |
 
 O timeout por tentativa é 3 s e o backoff padrão é 200 ms. Em testes, `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` permitem reduzir esses valores. O pior caso é de aproximadamente 6–7 s; o caminho normal continua dominado pela latência do mock (100–2000 ms).
 

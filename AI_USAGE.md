@@ -126,3 +126,5 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 ## Revisão de entrega
 
 O candidato pediu ao Codex que comparasse o projeto com o enunciado original e corrigisse os problemas a partir da main atualizada. O Codex reproduziu o erro de preço por HTTP e implementou a ampliação da coluna. O comando `node --test --test-name-pattern="preço alto" test/price.test.cjs` encontrou 500 onde se esperava 201. Depois da migration, `npm test` passou nos 11 testes, incluindo a leitura do preço e do motivo pelo detalhe.
+
+Na segunda correção, o Codex usou um servidor HTTP controlado para devolver uma reprovação incompleta. `node --test --test-name-pattern="sem motivo" test/rejection.test.cjs` retornou 201 onde se esperava 502. Depois da correção, `npm test` passou nos 12 testes. Com o mock fornecido e `ERROR_RATE=0`, o teste manual de R$ 21.474.836,48 retornou 201 na criação e 200 no detalhe com o mesmo preço e o motivo `price_out_of_range`.

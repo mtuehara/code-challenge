@@ -106,3 +106,5 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 ## Revisão de entrega
 
 A revisão de entrega amplia a coluna de centavos para bigint por migration. Isso permite persistir a reprovação por preço acima do limite anterior do PostgreSQL. Um teto no antigo limite de 32 bits impediria a consulta dessas reprovações. O contrato JSON usa number, por isso a validação limita os centavos à precisão inteira segura. O rollback para integer requer que os valores caibam no tipo anterior.
+
+A API trata uma reprovação sem motivo preenchido como falha do contrato externo (502). Inventar um motivo local atribuiria à moderação uma decisão que ela não informou. O cliente procura um texto preenchido primeiro em `rejection_reason` e depois em `reason`.
