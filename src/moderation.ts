@@ -1,0 +1,16 @@
+import { Injectable } from '@nestjs/common';
+import { AdInput } from './database';
+
+@Injectable()
+export class ModerationClient {
+  async check({ title, description, price, category }: AdInput) {
+    const base = process.env.MODERATION_URL ?? 'http://localhost:8787';
+    const response = await fetch(new URL('/v1/moderation/check', base), {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title, description, price, category }),
+    });
+    const result = await response.json();
+    if (!response.ok || result.status !== 'approved') throw new Error('Decisão inesperada');
+    return { status: 'approved' as const, rejectionReason: null };
+  }
+}
