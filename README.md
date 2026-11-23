@@ -43,6 +43,8 @@ $ad = Invoke-RestMethod http://localhost:3000/ads -Method Post -ContentType appl
 Invoke-RestMethod "http://localhost:3000/ads/$($ad.id)"
 ```
 
+O cliente envia `price` em reais, como número JSON. No exemplo, `800.25` representa R$ 800,25 e é enviado nesse formato também à moderação. A T-002 ainda grava o preço em uma coluna `numeric`. Com a mudança prevista para centavos inteiros, o banco guardará `80025` para facilitar cálculos caso seja necessários, previnindo bugs de floating pont, e a API continuará recebendo e devolvendo `800.25`.
+
 Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`. `GET /ads/{id}` retorna 200 com o mesmo objeto:
 
 ```json
