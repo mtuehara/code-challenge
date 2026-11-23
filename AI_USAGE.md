@@ -4,19 +4,19 @@ Usei o Codex como par de engenharia para interpretar o enunciado, comparar alter
 
 ## 1. O que o enunciado deixa em aberto?
 
-**Prompt reformulado** — Leia o enunciado e o contrato HTTP do mock. Identifique as regras obrigatórias e as escolhas que preciso fazer. Para cada ambiguidade, proponha um comportamento que eu consiga explicar e testar.
+**Prompt** — Leia o enunciado e o contrato HTTP do mock. Identifique as regras obrigatórias e as escolhas que preciso fazer. Para cada ambiguidade, proponha um comportamento que eu consiga explicar e testar.
 
 O Codex apontou que o motivo da reprovação precisa ficar visível, mas o enunciado deixa em aberto se o anúncio reprovado aparece na listagem. Pedi que explicasse a consequência para quem cria o anúncio. Escolhi tratar a listagem como catálogo público: o reprovado fica fora dela e pode ser consultado pelo ID com o motivo. Essa decisão ficou para a implementação dos anúncios em uma fatia posterior.
 
 ## 2. Qual banco vale o custo de configuração?
 
-**Prompt reformulado** — Considerando os campos de um anúncio e as consultas por ID e categoria, compare SQLite, Postgres e um banco de documentos. Que vantagem de cada opção seria útil neste desafio? Quanto ela acrescentaria ao setup?
+**Prompt** — Considerando os campos de um anúncio e as consultas por ID e categoria, compare SQLite, Postgres e um banco de documentos. Que vantagem de cada opção seria útil neste desafio? Quanto ela acrescentaria ao setup?
 
 A sugestão inicial do Codex foi SQLite, pela facilidade de execução. Questionei primeiro o custo de usar Postgres e depois a própria escolha entre SQL e NoSQL. O formato conhecido dos dados e as restrições de integridade favoreceram o modelo relacional. SQLite também atendia a esses critérios. Optei por Postgres aceitando o custo de manter um serviço no Compose e usar o mesmo motor no desenvolvimento e nos testes. As alternativas estão registradas em [DECISIONS.md](DECISIONS.md).
 
 ## 3. Como saber que o ambiente está pronto?
 
-**Prompt reformulado** — Antes do primeiro POST, como posso verificar que o Nest responde por HTTP e que a suíte está conectada ao banco de testes? Se o container aparece em execução, o que ainda preciso conferir?
+**Prompt** — Antes do primeiro POST, como posso verificar que o Nest responde por HTTP e que a suíte está conectada ao banco de testes? Se o container aparece em execução, o que ainda preciso conferir?
 
 Pedi que a preparação do Postgres viesse antes do teste de criação do anúncio. O Codex configurou o Compose com um banco de desenvolvimento e outro de testes. Para verificar o isolamento, a suíte conecta pela porta 5433 e exige que `SELECT current_database()` devolva `anuncios_test`.
 
