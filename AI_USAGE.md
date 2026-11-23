@@ -1,44 +1,27 @@
 # Uso de IA na T-001
 
-Usei o Codex como par de engenharia para discutir a especificação, preparar o ambiente e verificar se ele funcionava. Os blocos abaixo reproduzem trechos da conversa. Os parágrafos ao redor explicam o contexto e o que mudou no projeto.
+Usei o Codex como par de engenharia para interpretar o enunciado, comparar alternativas e preparar o ambiente NestJS com Postgres. Os prompts abaixo são reformulações de conversas reais. Cada um reúne as perguntas que orientaram uma decisão.
 
-## Especificar antes de implementar
+## 1. O que o enunciado deixa em aberto?
 
-> Trabalhe comigo como par de engenharia no desafio backend do Grupo OLX. Eu serei responsável pela entrega e preciso conseguir explicar e alterar qualquer parte dela ao vivo.
+**Prompt reformulado** — Leia o enunciado e o contrato HTTP do mock. Identifique as regras obrigatórias e as escolhas que preciso fazer. Para cada ambiguidade, proponha um comportamento que eu consiga explicar e testar.
 
-No pedido inicial, indiquei a ordem de leitura dos três documentos do desafio e pedi uma primeira resposta só na conversa. Queria revisar o comportamento da API antes de escolher como implementá-lo. Um dos pedidos foi:
+O Codex apontou que o motivo da reprovação precisa ficar visível, mas o enunciado deixa em aberto se o anúncio reprovado aparece na listagem. Pedi que explicasse a consequência para quem cria o anúncio. Escolhi tratar a listagem como catálogo público: o reprovado fica fora dela e pode ser consultado pelo ID com o motivo. Essa decisão ficou para a implementação dos anúncios em uma fatia posterior.
 
-> Uma tabela com “comportamento”, “origem” e “exemplo verificável”. Em “origem”, diferencie requisito explícito de decisão proposta.
+## 2. Qual banco vale o custo de configuração?
 
-Essa distinção trouxe uma decisão concreta para a discussão. O enunciado exige que o motivo da reprovação fique visível, mas deixa em aberto se o reprovado aparece na listagem. O Codex propôs tratar a lista como catálogo público. Pedi a justificativa e concordei em manter o reprovado consultável pelo ID. Essa decisão orienta uma fatia posterior à T-001.
+**Prompt reformulado** — Considerando os campos de um anúncio e as consultas por ID e categoria, compare SQLite, Postgres e um banco de documentos. Que vantagem de cada opção seria útil neste desafio? Quanto ela acrescentaria ao setup?
 
-## Questionar a escolha do banco
+A sugestão inicial do Codex foi SQLite, pela facilidade de execução. Questionei primeiro o custo de usar Postgres e depois a própria escolha entre SQL e NoSQL. O formato conhecido dos dados e as restrições de integridade favoreceram o modelo relacional. SQLite também atendia a esses critérios. Optei por Postgres aceitando o custo de manter um serviço no Compose e usar o mesmo motor no desenvolvimento e nos testes. As alternativas estão registradas em [DECISIONS.md](DECISIONS.md).
 
-> pq sqlite ao inves de postgres?
+## 3. Como saber que o ambiente está pronto?
 
-> mas entre sql e nosql qual e por que?
+**Prompt reformulado** — Antes do primeiro POST, como posso verificar que o Nest responde por HTTP e que a suíte está conectada ao banco de testes? Se o container aparece em execução, o que ainda preciso conferir?
 
-Foram duas perguntas em sequência. O Codex havia sugerido SQLite para economizar setup dentro das 4–6 horas. A primeira pergunta levou à comparação entre um arquivo local e um serviço Postgres no Compose. A segunda abriu uma questão anterior à escolha do produto: que característica dos anúncios justificava um banco relacional?
+Pedi que a preparação do Postgres viesse antes do teste de criação do anúncio. O Codex configurou o Compose com um banco de desenvolvimento e outro de testes. Para verificar o isolamento, a suíte conecta pela porta 5433 e exige que `SELECT current_database()` devolva `anuncios_test`.
 
-Discutimos o formato conhecido dos dados, as restrições de integridade e as consultas por ID e categoria. Um banco de documentos também atenderia, especialmente se cada categoria tivesse atributos muito diferentes. Aprovamos Postgres e aceitamos o custo de subir um serviço adicional. Os trade-offs estão em [DECISIONS.md](DECISIONS.md).
+Ao tentar abrir o healthcheck, encontrei outra lacuna. O primeiro teste aceitava um 404 na raiz como evidência de que o Nest respondia. Isso deixava sem resposta a pergunta prática de quem inicia o projeto: qual endereço posso abrir para conferir que funcionou? O Codex identificou um container antigo ocupando a porta 3000 e reproduziu o 404 em `GET /health` no Nest da T-001. Depois da correção, `npm test` passou e a chamada local retornou HTTP 200 com `{"status":"ok"}`. O [teste de ambiente](test/setup.test.cjs) mantém as duas verificações, HTTP e SQL.
 
-## Definir o que conta como ambiente funcionando
+## Revisão humana
 
-> acha que montar o container do postgres nao seria um pre requisito tbm?
-
-Depois de subir o container, mostrei a tela do Docker Desktop e perguntei:
-
-> essa nao seria a prova que esta rodando?
-
-A tela confirmava que o container estava em execução. Para começar o TDD, também precisávamos saber se a suíte conseguia consultar a base correta. Ao rever o escopo da T-001, combinamos verificar HTTP e SQL antes de implementar o primeiro anúncio. Assim, um problema de conexão pode ser identificado antes de interpretar a falha de um teste de negócio.
-
-O Codex preparou o módulo inicial do NestJS, o Compose, as instruções e o [teste de ambiente](test/setup.test.cjs). Executou `docker compose up -d --wait postgres postgres-test`, que indicou os dois serviços saudáveis, e `npm test`, que compilou o TypeScript e passou um teste. O teste observou HTTP 404 na raiz do Nest e exigiu que `SELECT current_database()` retornasse `anuncios_test` pela porta 5433. A criação de um anúncio pela API fica para a T-002.
-
-## Corrigir o fluxo de revisão
-
-> precisamos sempre passar por revisao humana no final, é o human in the loop?
-
-Pedi que cada tarefa passasse por revisão humana antes do merge. Na T-001, o Codex preparou a branch, o diff e as evidências de execução. Cabe a mim conferir se consigo reproduzir o resultado e explicar a mudança antes de integrá-la. Registramos essa divisão em [AGENTS.md](AGENTS.md).
-
-A revisão encontrou uma omissão concreta no commit `16f6602`: a escolha da stack estava no código, mas faltavam `DECISIONS.md` e `AI_USAGE.md`. O Codex conferiu a árvore do commit e acrescentou os dois registros na mesma branch para nova leitura.
-Ao tentar iniciar o Nest para consultar o healthcheck, o candidato identificou uma lacuna no setup. O Codex confirmou a porta 3000 ocupada pela API anterior e reproduziu o 404 em GET /health no Nest da T-001. Após adicionar a rota, npm test passou e a consulta local respondeu 200 com {"status":"ok"}.
+Pedi que cada tarefa chegasse em uma branch própria para eu revisar o diff e decidir o merge. A revisão da T-001 apontou que o setup já existia, mas os documentos de decisões e uso de IA ainda faltavam. O Codex conferiu a árvore do commit `16f6602` e acrescentou os registros no mesmo PR. O fluxo de revisão está descrito em [AGENTS.md](AGENTS.md).
