@@ -1,83 +1,66 @@
-# Code Challenge — Grupo OLX
+# API de anúncios | Grupo OLX
 
-Olá! Que bom ter você por aqui.
+API NestJS para criar anúncios, consultar o resultado da moderação e navegar pelo catálogo de aprovados. O Postgres mantém os dados entre reinícios. Consulte também o [enunciado original](docs/ENUNCIADO.md), os [requisitos do backend](backend/README.md), as [decisões](DECISIONS.md) e o [registro de IA](AI_USAGE.md).
 
-## Propósito
+## Executar
 
-Queremos entender como você pensa para resolver problemas, como organiza seu código, como toma decisões técnicas e como usa as ferramentas que tem à disposição, inclusive IA.
+Na raiz, com Docker e Docker Compose:
 
-Não buscamos a solução perfeita. Buscamos uma solução que você entende, sabe justificar e saberia evoluir.
+```sh
+docker compose up -d --build --wait
+```
 
-## O desafio
+A API responde em http://localhost:3000. O mock usa a porta 8787 e o Postgres a 5432. A migration inicial roda na inicialização. Para parar mantendo os anúncios, use `docker compose down`. As credenciais do Compose servem ao ambiente local.
 
-Escolha a trilha correspondente à vaga e siga as instruções do respectivo README:
+Para desenvolver com Node 24 instalado, suba apenas as dependências com `docker compose up -d --wait postgres moderation` e execute `npm ci`, `npm run build` e `npm start`. A porta 3000 deve estar livre. As variáveis opcionais são DATABASE_URL, MODERATION_URL, MODERATION_TIMEOUT_MS (padrão 3000) e PORT (padrão 3000).
 
-- [Backend](./backend/README.md)
+## Testar
 
-## Sobre o uso de IA
+Com Node 24 e Docker, na raiz:
 
-O uso de IA não só está autorizado como é encorajado e faz parte da avaliação. Ferramentas gratuitas são suficientes (ChatGPT, Claude, Gemini e Copilot têm planos gratuitos).
+```sh
+docker compose up -d --wait postgres-test
+npm ci
+npm test
+```
 
-Avaliamos o seu senso crítico e o seu entendimento do resultado, não o plano que você assina. Você é responsável por cada linha entregue, tenha sido escrita por você ou por uma IA.
+A suíte recompila a API, usa HTTP local, controla a moderação e limpa apenas a tabela da base dedicada anuncios_test em localhost:5433. Para verificar o mock fornecido com a aplicação completa em execução, rode `node test/smoke.cjs`. Esse comando cria anúncios na base de desenvolvimento e confere o detalhe e o catálogo.
 
-## Como desenvolver
+## Consumir
 
-1. Crie um repositório privado novo com o conteúdo deste repositório. Não use fork: forks de repositório público são sempre públicos.
-2. Faça commits incrementais ao longo do desenvolvimento. O histórico nos ajuda a entender a evolução do seu raciocínio.
+Exemplo no PowerShell:
 
-## O que entregar
+```powershell
+$body = @{ title = 'Bicicleta urbana'; description = 'Quadro azul'; price = 800.25; category = 'esportes'; images = @('https://example.org/bike.jpg') } | ConvertTo-Json
+$ad = Invoke-RestMethod http://localhost:3000/ads -Method Post -ContentType application/json -Body $body
+Invoke-RestMethod "http://localhost:3000/ads/$($ad.id)"
+Invoke-RestMethod 'http://localhost:3000/ads?category=esportes&page=1&pageSize=20'
+```
 
-1. **Código funcional**, com instruções de execução no `README.md` do seu repositório (um comando ou poucos passos). Prezamos muito por documentação: faça do README o seu cartão de visita.
-2. **`DECISIONS.md`** com:
-   - decisões técnicas relevantes, alternativas consideradas e por que foram descartadas;
-   - requisitos que ficaram ambíguos, a interpretação que você escolheu e por quê;
-   - tempo aproximado gasto e o que faria diferente com mais tempo.
-3. **`AI_USAGE.md`** com:
-   - quais ferramentas de IA usou e em quais etapas;
-   - exemplos de prompts ou fluxos que funcionaram;
-   - o que a IA gerou que você rejeitou ou corrigiu, e por quê;
-   - como você validou o que foi gerado.
+**POST /ads** recebe os cinco campos acima. Título entre 10 e 100 pontos de código Unicode após aparar espaços, descrição preenchida, preço numérico positivo em reais com até duas casas decimais e ao menos uma URL HTTP(S). Categorias aceitas: eletronicos, moveis, veiculos, imoveis, esportes e colecionaveis.
 
-   Não é pegadinha: usar IA bem conta a favor. Não precisa enviar o histórico completo das conversas.
-4. **Testes** dos fluxos que você considera críticos. Cobertura total não é exigida; a escolha do que testar também é avaliada.
+Uma decisão válida retorna 201, cabeçalho Location com /ads/{id}, e JSON como:
 
-## Como vamos avaliar
+```json
+{"id":"ba8a090f-0adf-4189-b622-2b718811e90b","title":"Bicicleta urbana","description":"Quadro azul","category":"esportes","price":800.25,"images":["https://example.org/bike.jpg"],"status":"approved","rejectionReason":null,"createdAt":"2026-11-23T15:00:00.000Z"}
+```
 
-Sua entrega será avaliada por no mínimo 2 engenheiros do Grupo OLX, em duas etapas: a leitura do repositório e a apresentação.
+Para um reprovado, status é rejected e rejectionReason traz o código externo. **GET /ads/{id}** retorna 200 com o mesmo objeto. ID inválido retorna 400 e UUID inexistente retorna 404.
 
-| Critério | O que observamos | Onde observamos |
-| --- | --- | --- |
-| **Manutenibilidade** | O código é legível e fácil de alterar? A solução é proporcional ao problema, sem código ou abstrações sobrando? | Código |
-| **Desenho** | Como as responsabilidades foram separadas? As fronteiras entre as partes estão claras? | Código |
-| **Qualidade** | Os testes cobrem o que realmente importa e validam comportamento? Seria fácil adaptá-los se o comportamento mudasse? | Testes |
-| **Documentação** | Quanto do seu projeto alguém consegue entender sem precisar te perguntar nada? | `README.md`, código |
-| **Desempenho** | A performance é adequada ao problema? Você entende os gargalos e como evoluiria a solução? | Código, apresentação |
-| **Decisões e trade-offs** | Por que você escolheu assim? Que alternativas considerou e descartou? Ambiguidades foram tratadas de forma explícita? | `DECISIONS.md`, apresentação |
-| **Uso crítico de IA** | Como você conduziu, validou e corrigiu o que a IA produziu? | `AI_USAGE.md`, apresentação |
-| **Domínio da solução** | Você explica qualquer parte do código e consegue alterá-lo? | Apresentação |
+**GET /ads** retorna apenas aprovados. O filtro opcional category precede a paginação. A ordem é createdAt e id decrescentes. page começa em 1 e pageSize em 20 por padrão (máximo 100). Uma categoria sem resultados retorna 200 com:
 
-O que **não** avaliamos: quantidade de código, número de funcionalidades extras ou quais ferramentas pagas você usou.
+```json
+{"items":[],"page":1,"pageSize":20,"total":0,"totalPages":0}
+```
 
-Preferimos um escopo menor e bem compreendido a um escopo grande que você não domina. Resolva bem o essencial.
+| Situação | Resposta |
+| --- | --- |
+| Entrada inválida | 400, error.code validation_error. Falhas de schema incluem details por campo |
+| Recurso ausente | 404, not_found |
+| Resposta externa inválida | 502, moderation_protocol_error |
+| Limite de taxa, queda ou 5xx externo | 503, moderation_unavailable. Retry-After em segundos quando disponível |
+| Tempo de moderação excedido | 504, moderation_timeout |
+| Falha interna inesperada | 500 |
 
-## Entrega
-
-- **Prazo:** 7 dias corridos a partir do recebimento. Se precisar de mais tempo, avise o recrutador antes do fim do prazo.
-- **Esforço esperado:** 4 a 6 horas de trabalho no total, não por dia. O prazo é longo de propósito, para caber na sua rotina.
-- Ao finalizar, adicione como colaboradores os avaliadores indicados no e-mail do recrutador.
-- Avise o recrutador por e-mail quando terminar.
-- Vale o conteúdo do repositório no momento do envio do e-mail: **commits posteriores não serão considerados**.
-
-## Apresentação
-
-Depois da entrega, agendamos uma conversa com os avaliadores, numa janela de até 1h30 que pode terminar antes sem nenhum prejuízo:
-
-- você apresenta a solução e as principais decisões;
-- conversamos sobre trade-offs, alternativas e o uso de IA;
-- podemos pedir uma pequena alteração ou evolução do código ao vivo.
-
-## Dúvidas
-
-Qualquer dúvida sobre o enunciado, fale com o time de Atração.
-
-Bom código! ;)
+As falhas de moderação interrompem a criação antes da gravação.
+O cliente de smoke repete até quatro tentativas por cenário ao receber 503/504. A API faz uma chamada externa por POST.

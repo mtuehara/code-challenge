@@ -1,4 +1,26 @@
 services:
+  moderation:
+    extends:
+      file: backend/api-mock/docker-compose.yml
+      service: moderation-api
+    build: ./backend/api-mock
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgres://anuncios:local_dev@postgres:5432/anuncios
+      MODERATION_URL: http://moderation:8787
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      moderation:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/ads?pageSize=1').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
   postgres-test:
     profiles: ["test"]
     image: postgres:16

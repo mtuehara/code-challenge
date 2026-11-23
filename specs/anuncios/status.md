@@ -1,11 +1,16 @@
-# Anúncios — estado
+# Estado da entrega
 
-- Revisão: 1, 2026-11-23.
-- Fluxo: SDD completo, proporcional ao desafio; etapa de especificação e design para revisão.
-- Revisão inicial em conversa concluída para três decisões. O usuário confirmou com “sshow, concordo”, após receber as justificativas: listar apenas aprovados; moderação síncrona sem salvar em falha técnica; salvar reprovados com motivo e retornar 201.
-- Stack confirmada: NestJS, TypeScript, Postgres e TypeORM. Durante o desenvolvimento, NestJS roda localmente e o Compose sobe banco e mock. Para a entrega, o Compose inclui a API.
-- Zod confirmado para validar entradas HTTP. O usuário aprovou a hierarquia BaseError para falhas da moderação e sua tradução HTTP por um filtro NestJS. As classes entram na T-005, guiadas pelos testes. O prazo exato de timeout e as regras adicionais de validação e paginação continuam propostos em requirements.md.
-- Nenhuma implementação iniciada ou teste executado. Não há commit de referência: inspeção anterior com git status --short informou que o diretório não é repositório Git.
-- Inspeção atual encontrou README.md e backend; nenhuma especificação preexistente foi encontrada. Nenhum AGENTS.md foi encontrado na busca do workspace ou nos caminhos ancestrais consultados.
-- Próxima ação: revisar propostas restantes em conjunto, depois iniciar T-001/T-002. Não voltar a pedir aprovação das três decisões já confirmadas.
-- A documentação de execução na raiz permanece original até haver comandos da aplicação validados. DECISIONS.md e AI_USAGE.md serão produzidos durante o trabalho com base nos registros reais.
+A stack aprovada e a implementação estão na raiz. NestJS, Postgres, TypeORM e Zod. A suíte usa Node 24 e HTTP. A listagem pública contém apenas aprovados, a reprovação persiste com motivo e as falhas externas interrompem a gravação. O adaptador aceita os campos reason e rejection_reason, conforme DECISIONS.md.
+
+| Tarefa | Comando ou observação | Resultado |
+| --- | --- | --- |
+| T-001 | docker compose up -d --wait postgres-test | Banco isolado saudável. Remoto privado confirmado, sem fork. |
+| T-002 | npm test | POST retornou 404 antes da rota. Depois retornou 201 e o GET após reinício recuperou o anúncio. |
+| T-003 | npm test | A reprovação passou de 500 para 201 com motivo no detalhe. |
+| T-004 | npm test | Título de 9 caracteres passou de 201 para 400. Limites inclusivos passaram. |
+| T-005 | npm test | Seis cenários falharam antes da tradução de falhas. Depois validaram HTTP e zero linhas gravadas. |
+| T-006 | npm test | Listagem passou de 404 para 200 com IDs, totais e páginas corretos. |
+| T-007 | node test/smoke.cjs | Dois 201 reais, approved e rejected com price_out_of_range. GET individual e catálogo responderam 200. O cliente repetiu duas tentativas após 503. |
+| T-008 | npm ci; npm test; docker compose up -d --build --wait | Instalação e build funcionaram; 12 testes passaram; serviços saudáveis. |
+
+O smoke descobriu o nome alternativo do motivo. O 12º teste reproduziu 502 e passou com 201 após o ajuste no adaptador. Falhas de setup (EACCES no sandbox e uma tentativa durante npm ci sem tsc disponível) foram resolvidas antes de interpretar os testes. O período de 4–6 horas é o esforço esperado. A retrospectiva pessoal e os dados dos avaliadores dependem do candidato.

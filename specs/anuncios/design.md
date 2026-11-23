@@ -65,6 +65,7 @@ Formato de erro proposto: {"error":{"code":"validation_error","message":"Dados i
 
 ## Verificação
 
-Jest/Supertest propostos para observar HTTP da aplicação, com base isolada no mesmo banco escolhido para execução. Controlar resultados da moderação nos testes de comportamento. Testar separadamente o adaptador contra servidor HTTP controlado, incluindo timeout e 429, sem depender de aleatoriedade do mock. Rodar também aprovação e reprovação contra o mock real pelo contrato documentado.
+Runner nativo do Node e fetch para observar HTTP da aplicação, com base isolada no mesmo banco escolhido para execução. Controlar resultados da moderação nos testes de comportamento. Testar separadamente o adaptador contra servidor HTTP controlado, incluindo timeout e 429, sem depender de aleatoriedade do mock. Rodar também aprovação e reprovação contra o mock real pelo contrato documentado.
 
 Sem esquema existente da aplicação a migrar nesta etapa. Na implementação, criar migration inicial; evitar depender de sincronização automática do ORM para a entrega.
+

@@ -1,6 +1,6 @@
 # Anúncios — requisitos
 
-Revisão 1, em 2026-11-23. Planejamento; nenhuma implementação validada.
+Revisão 1, em 2026-11-23. Especificação inicial. Resultados e evolução estão em status.md e DECISIONS.md.
 
 ## Objetivo e fontes
 
@@ -26,12 +26,13 @@ Prazo de entrega: sete dias corridos a partir do recebimento; esforço esperado 
 
 Autenticação, edição/exclusão, upload de arquivos, fila, processamento pendente, retentativas automáticas e idempotência. Não alterar nem reproduzir regras internas do mock.
 
-## Propostas ainda não confirmadas
+## Parâmetros adotados na implementação
 
-- Timeout configurável, inicialmente 3 segundos. O valor exato continua em aberto. O mapeamento HTTP das falhas foi acordado e está em design.md.
+- Timeout configurável, inicialmente 3 segundos. O ambiente pode sobrescrever o padrão. O mapeamento HTTP das falhas foi acordado e está em design.md.
 - Filtrar aprovados e categoria antes de ordenar por createdAt DESC, id DESC e paginar por offset. page=1, pageSize=20, máximo 100. Total usa os mesmos filtros. Página além do fim retorna lista vazia; parâmetros inválidos retornam 400.
-- Remover espaços externos do título; medir comprimento após normalização. Definir a convenção de contagem de caracteres antes dos testes de limite.
+- Remover espaços externos do título; medir comprimento após normalização. A contagem usa pontos de código Unicode.
 - Preço recebido em reais, no máximo duas casas decimais e armazenado em centavos.
 - Imagens como URLs HTTP/HTTPS, descrição não vazia e categoria entre as seis documentadas. Não baixar imagens.
 
 Limitação proposta: sem idempotência, repetir POST após perda da resposta pode criar duplicata. Sem snapshot entre páginas, novas inserções podem deslocar itens.
+
