@@ -1,6 +1,6 @@
 # Testes
 
-Este diretório contém a suíte de integração da API. O objetivo é exercitar o comportamento observável pela borda HTTP, com o Nest real, Postgres real e um serviço de moderação controlado.
+Este diretório contém os testes de integração da API e o teste unitário de conversão monetária. O objetivo é exercitar o comportamento observável pela borda HTTP, com o Nest real, Postgres real e um serviço de moderação controlado.
 
 ## Desenho
 
@@ -38,7 +38,7 @@ Um teste com `DataSource` mockado não provaria nada disso. Por isso a suíte so
 | [`rejection.test.cjs`](rejection.test.cjs) | 2 | 502 para reprovação sem motivo válido. Reprovação com `rejection_reason` e com `reason`, resposta 201, `Location`, `GET` e linha no banco. |
 | [`setup.test.cjs`](setup.test.cjs) | 2 | Identidade do banco `anuncios_test` e `GET /health`. |
 | [`validation.test.cjs`](validation.test.cjs) | 1 | 15 payloads inválidos, 400 com `details`, zero chamadas à moderação, zero linhas, limites 10/100 e título trimado. |
-| [`price.test.cjs`](price.test.cjs) | 2 | Reprovação por preço alto, limite de precisão. Preço em reais na API, `priceCents` inteiro no banco, zero à esquerda, recusa de 3 casas e ausência de `priceCents` na resposta. |
+| [`price.test.cjs`](price.test.cjs) | 2 | Reprovação por preço alto, limite de precisão. Preço em reais na API, `priceCents` inteiro no banco, conversão de 0,1 real em 10 centavos, recusa de 3 casas e ausência de `priceCents` na resposta. |
 | [`money.test.cjs`](money.test.cjs) | 1 | Conversão pura `toCents`/`fromCents`, sem Nest, banco ou mock. |
 | [`listing.test.cjs`](listing.test.cjs) | 1 | Paginação, filtro por categoria, desempate por `id DESC` com `createdAt` empatado, exclusão de reprovados, categoria sem resultados, página além do fim e queries inválidas. |
 | [`moderation.test.cjs`](moderation.test.cjs) | 1 | Retry 500/429, timeout, 503 com `Retry-After`, 502 para 400/status desconhecido, rejected sem retry e zero linhas em falha. |
@@ -64,7 +64,7 @@ O helper é `.cjs` e o `require` precisa da extensão explícita: `require('./su
 
 ## Ciclo de um teste
 
-O padrão é sempre o mesmo:
+Os testes de criação de anúncios seguem este ciclo:
 
 1. `connectTestDatabase()`.
 2. `startModerationServer(...)` com a resposta que o cenário precisa.
@@ -98,7 +98,7 @@ try {
 
 ## Como rodar
 
-Na raiz:
+Na raiz, com Node 24 e Docker Compose. Reserve `anuncios_test` para a suíte: o teste de seed executa `DELETE FROM advertisements` no início e no fim do cenário.
 
 ```sh
 docker compose up -d --wait postgres-test
@@ -106,7 +106,7 @@ npm ci
 npm test
 ```
 
-`npm test` compila o TypeScript para `dist/` e só depois executa os testes. Se rodar `node --test` diretamente depois de alterar `src/`, rode `npm run build` antes; os testes importam `../dist/app`.
+`npm test` compila o TypeScript para `dist/` e só depois executa os testes. Se rodar `node --test` diretamente depois de alterar `src/`, rode `npm run build` antes; os testes carregam o código compilado em `dist/`.
 
 Um arquivo específico:
 

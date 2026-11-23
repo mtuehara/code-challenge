@@ -1,33 +1,36 @@
 # Code Challenge — Grupo OLX
 
-## Ambiente de desenvolvimento
+API REST para criar e consultar anúncios de marketplace. O serviço usa NestJS, PostgreSQL 16 e a API de moderação fornecida pelo desafio.
 
-Na raiz, com Docker Compose e Node 24:
+[Enunciado de backend](backend/README.md) · [Contrato do mock](backend/api-mock/docs-candidato/API.md) · [Decisões técnicas](DECISIONS.md) · [Uso de IA](AI_USAGE.md) · [Testes](test/README.md)
+
+## Executar a API
+
+Na raiz do projeto, com Node 24 e Docker Compose, execute:
 
 ```sh
-docker compose up -d --wait postgres postgres-test
 npm ci
+docker compose up -d --wait postgres
+docker compose -f backend/api-mock/docker-compose.yml up -d --wait
+npm start
+```
+
+Mantenha o terminal aberto. O Nest aplica as migrations ao iniciar. [GET /health](http://localhost:3000/health) retorna HTTP 200 com `{"status":"ok"}`. Para desenvolver com reinício automático, use `npm run start:dev` no lugar de `npm start`. Se a porta 3000 estiver ocupada, defina `$env:PORT = '3001'` no PowerShell e use essa porta nas chamadas abaixo. Se a política do PowerShell bloquear `npm.ps1`, use `npm.cmd`.
+
+O banco de desenvolvimento é `anuncios` na porta 5432, com volume persistente. A variável `DATABASE_URL` configura a conexão. A moderação usa `MODERATION_URL`, com padrão `http://localhost:8787`.
+
+## Executar os testes
+
+Com as dependências instaladas, rode na raiz:
+
+```sh
+docker compose up -d --wait postgres-test
 npm test
 ```
 
-Os testes compilam o NestJS, iniciam um servidor em porta livre e verificam o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente. O desenho da suíte, os helpers e o motivo de usar `node:test` estão em [`test/README.md`](test/README.md).
+A suíte compila a aplicação, abre a API e a moderação controlada em portas livres e usa exclusivamente o banco dedicado `anuncios_test` na porta 5433.
 
-Para iniciar a API local, execute `npm start` e mantenha o terminal aberto. O comando compila a aplicação e imprime a URL de verificação. Abra [GET /health](http://localhost:3000/health) no navegador. A resposta esperada é HTTP 200 com `{"status":"ok"}`. Essa rota verifica se o processo Nest atende HTTP. A conexão com o banco é verificada separadamente pela suíte.
-
-Para desenvolver com reinício automático, execute `npm run start:dev`. O Nodemon observa `src` e `tsconfig.json` e executa `npm start` após cada alteração. Encerre com Ctrl+C. No PowerShell, caso a política bloqueie `npm.ps1`, use `npm.cmd run start:dev`.
-
-Se aparecer `EADDRINUSE`, a porta já está ocupada. No PowerShell, use `$env:PORT = '3001'` antes de `npm start` e abra a URL impressa no terminal.
-
-## Criar e consultar um anúncio aprovado (T-002)
-
-Inicie também o mock fornecido e a aplicação:
-
-```sh
-docker compose -f backend/api-mock/docker-compose.yml up -d --wait
-npm run start:dev
-```
-
-O Nest conecta ao banco de desenvolvimento na porta 5432 e aplica as migrations automaticamente. `DATABASE_URL` permite alterar a conexão e `MODERATION_URL` define a URL do serviço externo (padrão `http://localhost:8787`). A chamada Axios tem timeout de 3 segundos.
+## Criar e consultar um anúncio aprovado
 
 Em outro terminal PowerShell:
 
@@ -61,7 +64,7 @@ Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`.
 }
 ```
 
-Um UUID inexistente retorna 404 e um ID malformado retorna 400. A suíte chama a moderação por HTTP contra um servidor controlado, reinicia o Nest e recupera o anúncio usando a mesma base. Ela remove somente o registro criado pelo teste.
+Um UUID inexistente retorna 404 e um ID malformado retorna 400. A suíte chama a moderação por HTTP contra um servidor controlado, reinicia o Nest e recupera o anúncio usando a mesma base. O teste de criação remove o anúncio que criou.
 
 As T-002 a T-007 cobrem criação, validação, aprovação, reprovação, listagem e falhas do serviço externo. Falhas do mock não gravam anúncio: 429/5xx/timeout viram 503 após duas tentativas; 400 ou resposta desconhecida viram 502.
 
@@ -71,7 +74,7 @@ As T-002 a T-007 cobrem criação, validação, aprovação, reprovação, lista
 
 - `title`: string, com espaços nas pontas removidos, entre 10 e 100 caracteres; o banco recebe o título já trimado;
 - `description`: string não vazia;
-- `price`: número JSON finito, maior que zero e com no máximo 2 casas decimais;
+- `price`: número JSON finito, maior que zero, com até 2 casas decimais e valor máximo de R$ 90.071.992.547.409,90;
 - `category`: uma das categorias do mock (`eletronicos`, `moveis`, `veiculos`, `imoveis`, `esportes`, `colecionaveis`); as faixas de preço continuam sendo responsabilidade da moderação;
 - `images`: lista com ao menos uma string não vazia.
 
@@ -112,9 +115,9 @@ O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta
 
 ## Preço em centavos (T-005)
 
-`price` continua sendo um número em reais na entrada e na saída. No banco, a coluna passou a ser `priceCents integer`: `800.25` vira `80025`, `0.1` vira `10` e `1` vira `100`. A migration `AddPriceCents1795622400000` adiciona a coluna, faz o backfill das linhas existentes, cria o `CHECK ("priceCents" > 0)` e remove a coluna `numeric` antiga. Ela recusa dados legados com mais de 2 casas decimais em vez de arredondar silenciosamente.
+`price` continua sendo um número em reais na entrada e na saída. O banco guarda os centavos na coluna `priceCents bigint`: `800.25` vira `80025`, `0.1` vira `10` e `1` vira `100`. A migration `AddPriceCents1795622400000` adiciona a coluna, faz o backfill das linhas existentes, cria o `CHECK ("priceCents" > 0)` e remove a coluna `numeric` antiga. Ela recusa dados legados com mais de 2 casas decimais em vez de arredondar silenciosamente.
 
-A migration seguinte amplia a coluna de centavos para `bigint`. A API aceita até R$ 90.071.992.547.409,90, limite representável na entrada JSON dentro da precisão segura em centavos. Valores maiores retornam 400 antes da moderação. Por exemplo, um anúncio de esportes por R$ 21.474.836,48 retorna 201 com `status: "rejected"` e `rejectionReason: "price_out_of_range"` quando a moderação o reprova por preço.
+A migration `WidenPriceCents1795795200000` ampliou a coluna de centavos para `bigint`. A API aceita até R$ 90.071.992.547.409,90, limite representável na entrada JSON dentro da precisão segura em centavos. Valores maiores retornam 400 antes da moderação. Por exemplo, um anúncio de esportes por R$ 21.474.836,48 retorna 201 com `status: "rejected"` e `rejectionReason: "price_out_of_range"` quando a moderação o reprova por preço.
 
 A resposta HTTP não expõe `priceCents`: o mapper `toAdResponse` devolve `price` em reais. A conversão de entrada usa a string decimal (`"800.25"` → `80025`), sem `price * 100` em ponto flutuante. Preço com mais de 2 casas continua retornando 400.
 
@@ -130,15 +133,16 @@ A resposta HTTP não expõe `priceCents`: o mapper `toAdResponse` devolve `price
 
 A ordem é `createdAt DESC, id DESC`, para que a paginação seja determinística. Parâmetro ausente usa o padrão; valor vazio (`?page=`, `?category=`) é inválido e retorna 400. A resposta tem `data`, `page`, `pageSize`, `total` e `totalPages`; sem resultados, `total` e `totalPages` são 0:
 
+Exemplo para `GET /ads?page=1&pageSize=1&category=esportes` com os dados do teste de listagem.
+
 ```json
-GET /ads?page=1&pageSize=1&category=esportes
 {
   "data": [
     {
-      "id": "00000000-0000-4000-8000-000000000002",
-      "title": "Anuncio intermediario de esportes",
+      "id": "00000000-0000-4000-8000-000000000005",
+      "title": "Anuncio empatado mais novo",
       "description": "Descrição do anúncio de teste.",
-      "price": 200,
+      "price": 250,
       "category": "esportes",
       "images": ["https://example.org/teste.jpg"],
       "status": "approved",
@@ -148,8 +152,8 @@ GET /ads?page=1&pageSize=1&category=esportes
   ],
   "page": 1,
   "pageSize": 1,
-  "total": 2,
-  "totalPages": 2
+  "total": 3,
+  "totalPages": 3
 }
 ```
 
@@ -164,7 +168,7 @@ O `POST /ads` aguarda a moderação, mas não transforma falha técnica em 500 g
 | Situação | Comportamento |
 |---|---|
 | `200 approved` | persiste aprovado e retorna 201 |
-| `200 rejected` | persiste reprovado com motivo e retorna 201 |
+| `200 rejected` com motivo preenchido | persiste reprovado com motivo e retorna 201 |
 | `429`, `5xx`, timeout ou erro de rede | tenta de novo uma vez; respeita `Retry-After` (teto de 1 s) no 429; depois de duas tentativas retorna **503** com `Retry-After: 1` e **não grava** |
 | `400`, `200` com status desconhecido ou `rejected` sem motivo textual preenchido | **502**, sem retry e sem gravar |
 
@@ -185,6 +189,10 @@ O seed não aplica migrations sozinho.
 O script lê [`backend/api-mock/seed/ads.json`](backend/api-mock/seed/ads.json) — o arquivo fornecido, que não é alterado — e insere os **57 anúncios** como `approved`, com UUID, `priceCents`, `createdAt` original e uma imagem placeholder estável no Picsum (`https://picsum.photos/seed/anuncio-{id}/640/480`). O seed fornecido não tem imagens; o placeholder é só para a demonstração da listagem.
 
 O script **só roda em base vazia**. Se já existir qualquer anúncio, ele para com mensagem de erro em vez de duplicar. Não passa os 57 anúncios pela moderação: isso faria 57 chamadas, sofreria com o erro aleatório/limite de 5 req/s e não é o objetivo do seed.
+
+---
+
+# Orientações originais do Grupo OLX
 
 Olá! Que bom ter você por aqui.
 
@@ -210,41 +218,6 @@ Avaliamos o seu senso crítico e o seu entendimento do resultado, não o plano q
 
 1. Crie um repositório privado novo com o conteúdo deste repositório. Não use fork: forks de repositório público são sempre públicos.
 2. Faça commits incrementais ao longo do desenvolvimento. O histórico nos ajuda a entender a evolução do seu raciocínio.
-
-## O que entregar
-
-1. **Código funcional**, com instruções de execução no `README.md` do seu repositório (um comando ou poucos passos). Prezamos muito por documentação: faça do README o seu cartão de visita.
-2. **`DECISIONS.md`** com:
-   - decisões técnicas relevantes, alternativas consideradas e por que foram descartadas;
-   - requisitos que ficaram ambíguos, a interpretação que você escolheu e por quê;
-   - tempo aproximado gasto e o que faria diferente com mais tempo.
-3. **`AI_USAGE.md`** com:
-   - quais ferramentas de IA usou e em quais etapas;
-   - exemplos de prompts ou fluxos que funcionaram;
-   - o que a IA gerou que você rejeitou ou corrigiu, e por quê;
-   - como você validou o que foi gerado.
-
-   Não é pegadinha: usar IA bem conta a favor. Não precisa enviar o histórico completo das conversas.
-4. **Testes** dos fluxos que você considera críticos. Cobertura total não é exigida; a escolha do que testar também é avaliada.
-
-## Como vamos avaliar
-
-Sua entrega será avaliada por no mínimo 2 engenheiros do Grupo OLX, em duas etapas: a leitura do repositório e a apresentação.
-
-| Critério | O que observamos | Onde observamos |
-| --- | --- | --- |
-| **Manutenibilidade** | O código é legível e fácil de alterar? A solução é proporcional ao problema, sem código ou abstrações sobrando? | Código |
-| **Desenho** | Como as responsabilidades foram separadas? As fronteiras entre as partes estão claras? | Código |
-| **Qualidade** | Os testes cobrem o que realmente importa e validam comportamento? Seria fácil adaptá-los se o comportamento mudasse? | Testes |
-| **Documentação** | Quanto do seu projeto alguém consegue entender sem precisar te perguntar nada? | `README.md`, código |
-| **Desempenho** | A performance é adequada ao problema? Você entende os gargalos e como evoluiria a solução? | Código, apresentação |
-| **Decisões e trade-offs** | Por que você escolheu assim? Que alternativas considerou e descartou? Ambiguidades foram tratadas de forma explícita? | `DECISIONS.md`, apresentação |
-| **Uso crítico de IA** | Como você conduziu, validou e corrigiu o que a IA produziu? | `AI_USAGE.md`, apresentação |
-| **Domínio da solução** | Você explica qualquer parte do código e consegue alterá-lo? | Apresentação |
-
-O que **não** avaliamos: quantidade de código, número de funcionalidades extras ou quais ferramentas pagas você usou.
-
-Preferimos um escopo menor e bem compreendido a um escopo grande que você não domina. Resolva bem o essencial.
 
 ## Entrega
 
