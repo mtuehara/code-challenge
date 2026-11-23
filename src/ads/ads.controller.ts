@@ -1,6 +1,11 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Res } from '@nestjs/common';
 import { AdsService } from './ads.service';
-import { CreateAdInput, createAdSchema } from './ad.schema';
+import {
+  CreateAdInput,
+  createAdSchema,
+  ListAdsQuery,
+  listAdsQuerySchema,
+} from './ad.schema';
 import { ZodValidationPipe } from './zod-validation.pipe';
 
 @Controller('ads')
@@ -15,6 +20,11 @@ export class AdsController {
     const ad = await this.ads.create(input);
     response.location('/ads/' + ad.id);
     return ad;
+  }
+
+  @Get()
+  list(@Query(new ZodValidationPipe(listAdsQuerySchema)) query: ListAdsQuery) {
+    return this.ads.list(query);
   }
 
   @Get(':id')

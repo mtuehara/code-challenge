@@ -84,3 +84,17 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 **O que rejeitei ou corrigi.** Não mantive `numeric` com scale 2; não usei transformer no mesmo campo; não multipliquei `price * 100`; e não expus `priceCents` no JSON. O primeiro `npm test` falhou porque `dist/ads/money` ainda não existia e porque a coluna `priceCents` não existia no banco; eram as falhas esperadas. Depois da implementação, os sete testes passaram.
 
 **Como validei.** `npm test` → `tests 7`, `pass 7`, `fail 0`. O teste de integração consulta o banco e confere `80025` para `800.25`, `10` para `0.1` e 400 para `800.255`; o teste unitário cobre `toCents`/`fromCents` sem banco. Também rodei a migration em um banco temporário com uma linha legada `price=800.25`; o backfill produziu `priceCents=80025`. O banco de teste terminou limpo e as três migrations estavam aplicadas.
+
+## T-006 • Listagem e repositório
+
+**Prompt** — Implemente a T-006 a partir da `main` atualizada: extraia um `AdsRepository` para as operações de banco e deixe o `AdsService` com moderação, mapper e regra de listagem. Crie `GET /ads` com `page`/`pageSize`, filtro por categoria, ordem `createdAt DESC, id DESC`, somente aprovados e índices para a consulta. Teste antes do endpoint; não use `limit`/`offset` nem keyset.
+
+**O que a IA propôs.** O `AdsRepository` (`create`, `save`, `findById`, `findApprovedPage`), o schema de query, o método `list` no serviço, a resposta `{data, page, pageSize, total, totalPages}` e a migration de índices parciais.
+
+**O que aceitei.** O repositório, a paginação 1-based, a ordem com desempate por `id`, a exclusão de reprovados, a validação Zod da query e os dois índices parciais.
+
+**O que rejeitei ou corrigi.** Não incluí reprovados na listagem; não usei `limit`/`offset`; não adicionei keyset/cursor; não coloquei paginação, mapper ou resposta no repositório; e não deixei `where`/`order`/`skip`/`take` no serviço. O filtro `status = 'approved'` faz parte da consulta `findApprovedPage`, porque a listagem pública é o contrato dela. O primeiro `npm test` da listagem falhou com `404 !== 200`; era a falha esperada antes da rota.
+
+**Como validei.** `npm test` → `tests 8`, `pass 8`, `fail 0`. O teste `listing.test.cjs` insere cinco fixtures por SQL (quatro aprovados, sendo dois com o mesmo `createdAt`, e um reprovado), verifica as duas páginas, o filtro por categoria, os padrões, `pageSize=100`, categoria sem resultados, página além do fim, doze queries inválidas e que `GET /ads` não chama a moderação. Também conferi no banco os índices parciais e as quatro migrations; o banco de teste terminou limpo.
+
+**Revisão independente.** Rodei um subagente revisor antes do merge. Ele aprovou sem P1/P2 e apontou P3: o teste não exercitava o desempate por `id DESC`; as fixtures eram inseridas antes das migrations (quebrava o teste isolado em banco novo); faltavam casos de query vazia/limites; e havia frases desatualizadas no README/PR. Corrigi o teste (fixtures depois do app, empate com IDs diferentes, mais casos e `totalPages: 0`), ajustei a documentação e mantive o índice como está, qualificando a alegação de `EXPLAIN`.

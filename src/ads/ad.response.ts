@@ -13,6 +13,14 @@ export interface AdResponse {
   createdAt: Date;
 }
 
+export interface ListAdsResponse {
+  data: AdResponse[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export function toAdResponse(ad: Ad): AdResponse {
   return {
     id: ad.id,

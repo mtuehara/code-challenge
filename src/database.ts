@@ -76,6 +76,26 @@ class AddPriceCents1795622400000 implements MigrationInterface {
   }
 }
 
+class AddListingIndexes1795708800000 implements MigrationInterface {
+  async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
+      CREATE INDEX advertisements_listing_idx
+      ON advertisements (status, "createdAt" DESC, id DESC)
+      WHERE status = 'approved'
+    `);
+    await queryRunner.query(`
+      CREATE INDEX advertisements_category_listing_idx
+      ON advertisements (status, category, "createdAt" DESC, id DESC)
+      WHERE status = 'approved'
+    `);
+  }
+
+  async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('DROP INDEX advertisements_category_listing_idx');
+    await queryRunner.query('DROP INDEX advertisements_listing_idx');
+  }
+}
+
 export async function connectDatabase(): Promise<DataSource> {
   const database = new DataSource({
     type: 'postgres',
@@ -85,6 +105,7 @@ export async function connectDatabase(): Promise<DataSource> {
       CreateAdvertisements1795449600000,
       AddRejectedStatus1795536000000,
       AddPriceCents1795622400000,
+      AddListingIndexes1795708800000,
     ],
     migrationsTableName: 'advertisement_migrations',
     migrationsRun: true,
