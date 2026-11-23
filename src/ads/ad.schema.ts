@@ -14,6 +14,7 @@ const priceSchema = z
   .number({ message: 'O preço deve ser um número.' })
   .finite({ message: 'O preço deve ser um número finito.' })
   .positive({ message: 'O preço deve ser maior que zero.' })
+  .max(Number.MAX_SAFE_INTEGER / 100, { message: 'O preço excede a precisão suportada em centavos.' })
   .refine(isPriceWithTwoDecimals, {
     message: 'O preço deve ter no máximo 2 casas decimais.',
   });

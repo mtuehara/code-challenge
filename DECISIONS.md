@@ -102,3 +102,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
   - adicionaria logs estruturados/correlação para diagnosticar falhas do mock e um contrato OpenAPI gerado a partir dos schemas;
   - rodaria a suíte em CI e em uma máquina limpa, com um teste automatizado do seed em banco temporário.
 - O que **não** mudaria: a escolha de `node:test` com integração HTTP/Postgres real, o Zod como contrato de entrada, os centavos no banco, o 201 para reprovado e a separação controller → service → repositório.
+
+## Revisão de entrega
+
+A revisão de entrega amplia a coluna de centavos para bigint por migration. Isso permite persistir a reprovação por preço acima do limite anterior do PostgreSQL. Um teto no antigo limite de 32 bits impediria a consulta dessas reprovações. O contrato JSON usa number, por isso a validação limita os centavos à precisão inteira segura. O rollback para integer requer que os valores caibam no tipo anterior.
