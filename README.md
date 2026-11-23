@@ -63,7 +63,7 @@ Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`.
 
 Um UUID inexistente retorna 404 e um ID malformado retorna 400. A suíte chama a moderação por HTTP contra um servidor controlado, reinicia o Nest e recupera o anúncio usando a mesma base. Ela remove somente o registro criado pelo teste.
 
-As T-002 a T-006 cobrem criação, validação, aprovação, reprovação e listagem. O tratamento específico de falhas externas será entregue na próxima fatia. Por enquanto, uma falha do mock (400, 429, 500 ou timeout) resulta em 500 e interrompe a criação antes da gravação.
+As T-002 a T-007 cobrem criação, validação, aprovação, reprovação, listagem e falhas do serviço externo. Falhas do mock não gravam anúncio: 429/5xx/timeout viram 503 após duas tentativas; 400 ou resposta desconhecida viram 502.
 
 ## Validação de entrada (T-003)
 
@@ -154,6 +154,19 @@ GET /ads?page=1&pageSize=1&category=esportes
 Query inválida retorna 400 com `details`. Uma página além do fim retorna 200 com `data: []`. Os reprovados ficam fora da listagem, mas continuam acessíveis por `GET /ads/{id}`. O acesso ao banco fica em `AdsRepository`; o serviço coordena paginação, mapper e resposta.
 
 A migration `AddListingIndexes1795708800000` cria dois índices parciais para `status = 'approved'`: um para a ordem global e outro para o filtro por categoria. Com 57 anúncios o planner pode preferir `Seq Scan`; os índices existem para volume maior e foram validados com o plano forçado (Index Scan sem `Sort`), não como uma promessa de ganho no seed.
+
+## Falhas do mock (T-007)
+
+O `POST /ads` aguarda a moderação, mas não transforma falha técnica em 500 genérico:
+
+| Situação | Comportamento |
+|---|---|
+| `200 approved` | persiste aprovado e retorna 201 |
+| `200 rejected` | persiste reprovado com motivo e retorna 201 |
+| `429`, `5xx`, timeout ou erro de rede | tenta de novo uma vez; respeita `Retry-After` (teto de 1 s) no 429; depois de duas tentativas retorna **503** com `Retry-After: 1` e **não grava** |
+| `400` ou `200` com status desconhecido | **502**, sem retry e sem gravar |
+
+O timeout por tentativa é 3 s e o backoff padrão é 200 ms. Em testes, `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` permitem reduzir esses valores. O pior caso é de aproximadamente 6–7 s; o caminho normal continua dominado pela latência do mock (100–2000 ms).
 
 Olá! Que bom ter você por aqui.
 

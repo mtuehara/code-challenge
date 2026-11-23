@@ -40,7 +40,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - O cliente passou a devolver um resultado (`approved` ou `rejected` com motivo), em vez de lançar erro para qualquer status diferente de `approved`. O serviço grava `status` e `rejectionReason` na mesma operação; o controller não mudou e o 201 continua sendo o padrão do `POST`.
 - O mock real devolve `rejection_reason`; o `API.md` documenta `reason`. O cliente lê `rejection_reason` primeiro e `reason` como fallback, e a API expõe `rejectionReason`. Alternativa descartada: ler apenas `reason`, que deixaria o motivo nulo no mock real.
 - Migration nova `AddRejectedStatus1795536000000` troca o `CHECK (status = 'approved')` por `CHECK (status IN ('approved', 'rejected'))`. A migration inicial não foi editada. O `down` restaura a restrição antiga e só é seguro se não houver reprovados; isso está documentado no código.
-- O tipo `status` da entidade passou a ser `'approved' | 'rejected'`; `rejectionReason` continua nullable. A listagem e a exclusão de reprovados ficam para a T-006; falhas do mock permanecem 500 até a T-007.
+- O tipo `status` da entidade passou a ser `'approved' | 'rejected'`; `rejectionReason` continua nullable. A listagem e a exclusão de reprovados ficaram para a T-006; falhas do mock foram implementadas na T-007.
 - **Limite da evidência.** O teste `test/rejection.test.cjs` usa servidor controlado e cobre as duas chaves de motivo. A verificação com o mock real devolveu 201, `rejectionReason: "contact_info_not_allowed"`, GET 200 e a linha no banco. O primeiro `npm test` falhou com 500 onde o teste esperava 201; depois da implementação, os cinco testes passaram.
 
 ## T-005 • Preço em centavos
@@ -59,6 +59,14 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - Query validada pelo mesmo `ZodValidationPipe`: `page`/`pageSize` inválidos e categoria fora do contrato retornam 400 antes do banco. `totalPages` é `Math.ceil(total / pageSize)`; página além do fim devolve `data: []`.
 - Dois índices parciais `WHERE status = 'approved'`: `(status, "createdAt" DESC, id DESC)` e `(status, category, "createdAt" DESC, id DESC)`. Com 57 linhas o planner pode preferir `Seq Scan`; os índices são para volume maior e foram validados com plano forçado (Index Scan sem `Sort`).
 - **Limite da evidência.** A suíte cobre paginação/filtro/ordem com fixtures SQL e não mede carga; `OFFSET` profundo e `COUNT(*)` continuam sendo o custo a evoluir para keyset. A migration de índices não tem teste de plano (`EXPLAIN`) automatizado.
+
+## T-007 • Falhas do serviço de moderação
+
+- Duas tentativas no máximo para `429`, `5xx`, timeout e erro de rede; uma tentativa para `400` e status desconhecido. O `Retry-After` do 429 é respeitado com teto de 1 s; o backoff padrão é 200 ms e o timeout por tentativa é 3 s. Alternativa descartada: retry infinito/circuit breaker — overkill para o desafio e aumentaria a latência sem ganho proporcional.
+- Depois de esgotar as tentativas, o cliente lança `ModerationUnavailableError`; o controller responde **503** com `Retry-After: 1`. `400` ou `200` com status desconhecido lançam `ModerationProtocolError` e viram **502**. A moderação acontece antes do `save`, então nenhuma falha técnica grava anúncio.
+- `200 rejected` continua sendo resposta válida: persiste `rejected` com motivo e não faz retry. O `ModerationClient` não conhece HTTP de resposta; o controller traduz os erros para 503/502, mantendo a borda HTTP no controller.
+- `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` existem para os testes não esperarem 3 s/200 ms; os defaults de produção continuam 3000/200.
+- **Limite da evidência.** O teste `test/moderation.test.cjs` usa servidor controlado e cobre 500→200, 429→200, 500 sempre, timeout sempre, 400, status desconhecido e rejected. Não testei um 429 real do mock nem o comportamento sob carga concorrente; o pior caso teórico é ~6–7 s.
 
 ## Testes • `node:test` e integração
 
