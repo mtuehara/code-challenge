@@ -1,5 +1,17 @@
 # Code Challenge — Grupo OLX
 
+## Ambiente de desenvolvimento (T-001)
+
+Na raiz, com Docker Compose e Node 24:
+
+```sh
+docker compose up -d --wait postgres postgres-test
+npm ci
+npm test
+```
+
+O teste compila o NestJS, inicia um servidor em porta livre e verifica o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente. Para executar o servidor após o build, use `npm start` (porta 3000 por padrão, configurável com `PORT`). Nesta etapa a raiz responde 404; as rotas de anúncios entram nos próximos PRs.
+
 Olá! Que bom ter você por aqui.
 
 ## Propósito
