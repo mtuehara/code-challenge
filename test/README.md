@@ -38,8 +38,10 @@ Um teste com `DataSource` mockado não provaria nada disso. Por isso a suíte so
 | [`rejection.test.cjs`](rejection.test.cjs) | 1 | Reprovação com `rejection_reason` e com `reason`, resposta 201, `Location`, `GET` e linha no banco. |
 | [`setup.test.cjs`](setup.test.cjs) | 2 | Identidade do banco `anuncios_test` e `GET /health`. |
 | [`validation.test.cjs`](validation.test.cjs) | 1 | 15 payloads inválidos, 400 com `details`, zero chamadas à moderação, zero linhas, limites 10/100 e título trimado. |
+| [`price.test.cjs`](price.test.cjs) | 1 | Preço em reais na API, `priceCents` inteiro no banco, zero à esquerda, recusa de 3 casas e ausência de `priceCents` na resposta. |
+| [`money.test.cjs`](money.test.cjs) | 1 | Conversão pura `toCents`/`fromCents`, sem Nest, banco ou mock. |
 
-Total: **5 testes**.
+Total: **7 testes**.
 
 ## Helpers
 
@@ -121,7 +123,7 @@ Os testes usam `--test-concurrency=1` porque compartilham o mesmo banco e rodam 
 
 ## Quando adicionar teste de unidade
 
-Vale a pena para lógica pura e barata, sem Nest e sem banco. Exemplo futuro (T-005):
+Vale a pena para lógica pura e barata, sem Nest e sem banco. A T-005 já tem um exemplo real em [`money.test.cjs`](money.test.cjs):
 
 ```js
 const { test } = require('node:test');

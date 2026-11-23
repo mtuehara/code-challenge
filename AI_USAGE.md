@@ -72,3 +72,15 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 **O que rejeitei ou corrigi.** Não troquei para Jest, `TestModule` ou `.spec.ts`; não criei um mini-framework que escondesse o cenário; e não reduzi o número de asserções. Na primeira execução, os testes falharam com `Cannot find module './support/helpers'` porque o resolver CommonJS não acrescenta `.cjs` sozinho. Corrigi os imports para `./support/helpers.cjs`; depois `npm test` passou nos cinco testes.
 
 **Como validei.** `npm test` passou com `tests 5`, `pass 5`, `fail 0`. O `git diff` foi revisado para confirmar que os cenários e as asserções continuavam iguais; o README dos testes foi conferido contra os arquivos reais. A suíte continua dependendo do Postgres de teste e não usa o mock real.
+
+## T-005 • Preço em centavos
+
+**Prompt** — Implemente a T-005 com teste antes do código: a API continua recebendo e devolvendo reais, mas o banco deve guardar `priceCents integer`. Crie uma migration nova com backfill, sem editar a anterior. A conversão não pode multiplicar `number` por 100; use a representação decimal. O mapper não deve expor `priceCents` na resposta e `800.255` deve continuar retornando 400.
+
+**O que a IA propôs.** `toCents`/`fromCents` em `src/ads/money.ts`, a coluna `priceCents`, a migration `AddPriceCents1795622400000` e o mapper `toAdResponse`. O schema Zod passou a reutilizar `isPriceWithTwoDecimals`, em vez de manter uma segunda regex.
+
+**O que aceitei.** A conversão por string (`"800" + "25"`), o mapper de resposta, a migration com backfill e a checagem que recusa dados legados com mais de 2 casas. O preço enviado à moderação continua em reais.
+
+**O que rejeitei ou corrigi.** Não mantive `numeric` com scale 2; não usei transformer no mesmo campo; não multipliquei `price * 100`; e não expus `priceCents` no JSON. O primeiro `npm test` falhou porque `dist/ads/money` ainda não existia e porque a coluna `priceCents` não existia no banco; eram as falhas esperadas. Depois da implementação, os sete testes passaram.
+
+**Como validei.** `npm test` → `tests 7`, `pass 7`, `fail 0`. O teste de integração consulta o banco e confere `80025` para `800.25`, `10` para `0.1` e 400 para `800.255`; o teste unitário cobre `toCents`/`fromCents` sem banco. Também rodei a migration em um banco temporário com uma linha legada `price=800.25`; o backfill produziu `priceCents=80025`. O banco de teste terminou limpo e as três migrations estavam aplicadas.

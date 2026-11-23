@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPriceWithTwoDecimals } from './money';
 
 export const AD_CATEGORIES = [
   'eletronicos',
@@ -9,13 +10,11 @@ export const AD_CATEGORIES = [
   'colecionaveis',
 ] as const;
 
-const pricePattern = /^\d+(\.\d{1,2})?$/;
-
 const priceSchema = z
   .number({ message: 'O preço deve ser um número.' })
   .finite({ message: 'O preço deve ser um número finito.' })
   .positive({ message: 'O preço deve ser maior que zero.' })
-  .refine(value => pricePattern.test(String(value)), {
+  .refine(isPriceWithTwoDecimals, {
     message: 'O preço deve ter no máximo 2 casas decimais.',
   });
 

@@ -11,13 +11,8 @@ export class Ad {
   @Column('text')
   description!: string;
 
-  @Column('numeric', {
-    transformer: {
-      to: (value: number) => value,
-      from: (value: string) => Number(value),
-    },
-  })
-  price!: number;
+  @Column('integer', { name: 'priceCents' })
+  priceCents!: number;
 
   @Column('text')
   category!: string;
