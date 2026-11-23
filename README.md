@@ -219,41 +219,6 @@ Avaliamos o seu senso crítico e o seu entendimento do resultado, não o plano q
 1. Crie um repositório privado novo com o conteúdo deste repositório. Não use fork: forks de repositório público são sempre públicos.
 2. Faça commits incrementais ao longo do desenvolvimento. O histórico nos ajuda a entender a evolução do seu raciocínio.
 
-## O que entregar
-
-1. **Código funcional**, com instruções de execução no `README.md` do seu repositório (um comando ou poucos passos). Prezamos muito por documentação: faça do README o seu cartão de visita.
-2. **`DECISIONS.md`** com:
-   - decisões técnicas relevantes, alternativas consideradas e por que foram descartadas;
-   - requisitos que ficaram ambíguos, a interpretação que você escolheu e por quê;
-   - tempo aproximado gasto e o que faria diferente com mais tempo.
-3. **`AI_USAGE.md`** com:
-   - quais ferramentas de IA usou e em quais etapas;
-   - exemplos de prompts ou fluxos que funcionaram;
-   - o que a IA gerou que você rejeitou ou corrigiu, e por quê;
-   - como você validou o que foi gerado.
-
-   Não é pegadinha: usar IA bem conta a favor. Não precisa enviar o histórico completo das conversas.
-4. **Testes** dos fluxos que você considera críticos. Cobertura total não é exigida; a escolha do que testar também é avaliada.
-
-## Como vamos avaliar
-
-Sua entrega será avaliada por no mínimo 2 engenheiros do Grupo OLX, em duas etapas: a leitura do repositório e a apresentação.
-
-| Critério | O que observamos | Onde observamos |
-| --- | --- | --- |
-| **Manutenibilidade** | O código é legível e fácil de alterar? A solução é proporcional ao problema, sem código ou abstrações sobrando? | Código |
-| **Desenho** | Como as responsabilidades foram separadas? As fronteiras entre as partes estão claras? | Código |
-| **Qualidade** | Os testes cobrem o que realmente importa e validam comportamento? Seria fácil adaptá-los se o comportamento mudasse? | Testes |
-| **Documentação** | Quanto do seu projeto alguém consegue entender sem precisar te perguntar nada? | `README.md`, código |
-| **Desempenho** | A performance é adequada ao problema? Você entende os gargalos e como evoluiria a solução? | Código, apresentação |
-| **Decisões e trade-offs** | Por que você escolheu assim? Que alternativas considerou e descartou? Ambiguidades foram tratadas de forma explícita? | `DECISIONS.md`, apresentação |
-| **Uso crítico de IA** | Como você conduziu, validou e corrigiu o que a IA produziu? | `AI_USAGE.md`, apresentação |
-| **Domínio da solução** | Você explica qualquer parte do código e consegue alterá-lo? | Apresentação |
-
-O que **não** avaliamos: quantidade de código, número de funcionalidades extras ou quais ferramentas pagas você usou.
-
-Preferimos um escopo menor e bem compreendido a um escopo grande que você não domina. Resolva bem o essencial.
-
 ## Entrega
 
 - **Prazo:** 7 dias corridos a partir do recebimento. Se precisar de mais tempo, avise o recrutador antes do fim do prazo.
