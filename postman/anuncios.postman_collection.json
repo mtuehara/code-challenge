@@ -1,0 +1,546 @@
+{
+  "info": {
+    "name": "OLX | Anúncios e moderação",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Execute na ordem. O fluxo cria dois anúncios por execução. baseUrl aponta para o Nest e mockUrl para a moderação. Para a demonstração reproduzível, inicie o mock com ERROR_RATE=0. Instruções em docs/guia-de-estudo.md."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "mockUrl",
+      "value": "http://localhost:8787",
+      "type": "string"
+    },
+    {
+      "key": "approvedId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rejectedId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "API de anúncios",
+      "item": [
+        {
+          "name": "Saúde da API",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Processo disponível', () => pm.expect(pm.response.json().status).to.equal('ok'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar aprovado",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bicicleta urbana Postman\",\n  \"description\": \"Bicicleta usada em bom estado.\",\n  \"category\": \"esportes\",\n  \"price\": 800.25,\n  \"images\": [\n    \"https://example.org/bicicleta.jpg\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset('approvedId');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const ad = pm.response.json();",
+                  "pm.test('Decisão, motivo e preço em reais', () => {",
+                  "  pm.expect(ad.status).to.equal('approved');",
+                  "  pm.expect(ad.rejectionReason).to.equal(null);",
+                  "  pm.expect(ad.price).to.equal(800.25);",
+                  "  pm.expect(ad).not.to.have.property('priceCents');",
+                  "});",
+                  "pm.test('Location aponta para o ID gerado', () => {",
+                  "  pm.expect(ad.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.equal('/ads/' + ad.id);",
+                  "});",
+                  "if (pm.response.code === 201 && ad.id) pm.collectionVariables.set('approvedId', ad.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar aprovado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ads/{{approvedId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "{{approvedId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Detalhe recupera identidade e decisão', () => {",
+                  "  const ad = pm.response.json();",
+                  "  pm.expect(ad.id).to.equal(pm.collectionVariables.get('approvedId'));",
+                  "  pm.expect(ad.status).to.equal('approved');",
+                  "  pm.expect(ad.price).to.equal(800.25);",
+                  "  pm.expect(ad.rejectionReason).to.equal(null);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar reprovado por preço alto",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bicicleta urbana Postman\",\n  \"description\": \"Bicicleta usada em bom estado.\",\n  \"category\": \"esportes\",\n  \"price\": 21474836.48,\n  \"images\": [\n    \"https://example.org/bicicleta.jpg\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset('rejectedId');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const ad = pm.response.json();",
+                  "pm.test('Decisão, motivo e preço em reais', () => {",
+                  "  pm.expect(ad.status).to.equal('rejected');",
+                  "  pm.expect(ad.rejectionReason).to.equal(\"price_out_of_range\");",
+                  "  pm.expect(ad.price).to.equal(21474836.48);",
+                  "  pm.expect(ad).not.to.have.property('priceCents');",
+                  "});",
+                  "pm.test('Location aponta para o ID gerado', () => {",
+                  "  pm.expect(ad.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(pm.response.headers.get('Location')).to.equal('/ads/' + ad.id);",
+                  "});",
+                  "if (pm.response.code === 201 && ad.id) pm.collectionVariables.set('rejectedId', ad.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar reprovado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ads/{{rejectedId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "{{rejectedId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Detalhe recupera identidade e decisão', () => {",
+                  "  const ad = pm.response.json();",
+                  "  pm.expect(ad.id).to.equal(pm.collectionVariables.get('rejectedId'));",
+                  "  pm.expect(ad.status).to.equal('rejected');",
+                  "  pm.expect(ad.price).to.equal(21474836.48);",
+                  "  pm.expect(ad.rejectionReason).to.equal(\"price_out_of_range\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar catálogo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Página padrão do catálogo', () => {",
+                  "  const page = pm.response.json();",
+                  "  pm.expect(page.page).to.equal(1);",
+                  "  pm.expect(page.pageSize).to.equal(20);",
+                  "  pm.expect(page.total).to.be.at.least(1);",
+                  "  pm.expect(page.data.length).to.be.within(1, 20);",
+                  "  page.data.forEach(ad => pm.expect(ad.status).to.equal('approved'));",
+                  "  pm.expect(page.totalPages).to.equal(Math.ceil(page.total / 20));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar esportes e paginar",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ads?category=esportes&page=1&pageSize=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "esportes"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Filtro, tamanho e visibilidade', () => {",
+                  "  const page = pm.response.json();",
+                  "  pm.expect(page.page).to.equal(1);",
+                  "  pm.expect(page.pageSize).to.equal(1);",
+                  "  pm.expect(page.totalPages).to.equal(page.total);",
+                  "  pm.expect(page.data).to.have.lengthOf(1);",
+                  "  pm.expect(page.data[0].category).to.equal('esportes');",
+                  "  pm.expect(page.data[0].status).to.equal('approved');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recusar título curto",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/ads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Curto\",\n  \"description\": \"Bicicleta usada em bom estado.\",\n  \"category\": \"esportes\",\n  \"price\": 800.25,\n  \"images\": [\n    \"https://example.org/bicicleta.jpg\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erro identifica o campo', () => pm.expect(pm.response.json().details.map(issue => issue.field)).to.include('title'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recusar página zero",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ads?page=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erro identifica o campo', () => pm.expect(pm.response.json().details.map(issue => issue.field)).to.include('page'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recusar ID malformado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ads/invalido",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "invalido"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erro de entrada', () => pm.expect(pm.response.json().statusCode).to.equal(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar UUID inexistente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/ads/{{$guid}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ads",
+                "{{$guid}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Recurso ausente', () => pm.expect(pm.response.json().statusCode).to.equal(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mock fornecido",
+      "item": [
+        {
+          "name": "Saúde da moderação",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{mockUrl}}/health",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Processo disponível', () => pm.expect(pm.response.json().status).to.equal('ok'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Moderar anúncio diretamente",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{mockUrl}}/v1/moderation/check",
+              "host": [
+                "{{mockUrl}}"
+              ],
+              "path": [
+                "v1",
+                "moderation",
+                "check"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bicicleta urbana Postman\",\n  \"description\": \"Bicicleta usada em bom estado.\",\n  \"category\": \"esportes\",\n  \"price\": 800.25\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Aprovação do serviço externo', () => pm.expect(pm.response.json().status).to.equal('approved'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
