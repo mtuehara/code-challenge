@@ -6,9 +6,13 @@ import { ModerationTimeoutError } from './errors/timeout';
 import { ModerationProtocolError } from './errors/protocol';
 import { ModerationUnavailableError } from './errors/unavailable';
 
-const decision = z.discriminatedUnion('status', [
+const reason = z.string().trim().min(1);
+const decision = z.union([
   z.object({ status: z.literal('approved') }),
-  z.object({ status: z.literal('rejected'), reason: z.string().trim().min(1) }),
+  z.object({ status: z.literal('rejected'), reason }),
+  z.object({ status: z.literal('rejected'), rejection_reason: reason }).transform(value => ({
+    status: value.status, reason: value.rejection_reason,
+  })),
 ]);
 
 @Injectable()

@@ -111,3 +111,9 @@ test('filtra categoria e publicação antes de ordenar, contar e paginar', async
   }
   for (const query of ['page=0','pageSize=101','category=outra']) assert.equal((await fetch(base+'/ads?'+query)).status,400);
 });
+test('aceita o nome do motivo observado no mock fornecido', async () => {
+  respond = res => res.end('{"status":"rejected","rejection_reason":"price_out_of_range"}');
+  const result = await post({...ad, price:1});
+  assert.equal(result.status,201);
+  assert.equal((await result.json()).rejectionReason,'price_out_of_range');
+});
