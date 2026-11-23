@@ -10,7 +10,7 @@ npm ci
 npm test
 ```
 
-Os testes compilam o NestJS, iniciam um servidor em porta livre e verificam o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente.
+Os testes compilam o NestJS, iniciam um servidor em porta livre e verificam o acesso SQL ao banco dedicado `anuncios_test` (5433). O banco de desenvolvimento `anuncios` usa a porta 5432 e um volume persistente. O desenho da suíte, os helpers e o motivo de usar `node:test` estão em [`test/README.md`](test/README.md).
 
 Para iniciar a API local, execute `npm start` e mantenha o terminal aberto. O comando compila a aplicação e imprime a URL de verificação. Abra [GET /health](http://localhost:3000/health) no navegador. A resposta esperada é HTTP 200 com `{"status":"ok"}`. Essa rota verifica se o processo Nest atende HTTP. A conexão com o banco é verificada separadamente pela suíte.
 
