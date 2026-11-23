@@ -1,4 +1,4 @@
-# Uso de IA na T-001
+# Uso de IA no desafio
 
 Usei o Codex como par de engenharia para interpretar o enunciado, comparar alternativas e preparar o ambiente NestJS com Postgres. Os prompts abaixo são reformulações de conversas reais. Cada um reúne as perguntas que orientaram uma decisão.
 
@@ -110,3 +110,15 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 **O que rejeitei ou corrigi.** Não usei retry infinito, circuit breaker, fila assíncrona ou retry para 400/rejected; não coloquei headers HTTP no cliente; e não gravei nada em falha técnica. O primeiro teste falhou por um detalhe meu: os títulos de cenário tinham 9 caracteres e a validação da T-003 os recusava com 400; corrigi os títulos e a falha passou a ser a esperada (`500 !== 201`). Depois da implementação, `npm test` passou nos nove testes.
 
 **Como validei.** `npm test` → `tests 9`, `pass 9`, `fail 0`. O teste controlado cobre 500→200, 429→200, 500 sempre, timeout sempre, 400, status desconhecido e rejected; confere contagem de tentativas, `Retry-After: 1` no 503, 502 sem retry e `count(*) = 0` para falhas. O banco de teste terminou limpo.
+
+## T-009 • Seed de demonstração
+
+**Prompt** — Implemente o seed dos 57 anúncios fornecidos pelo mock, sem alterar `backend/api-mock/**`. O script deve rodar manualmente, recusar base não vazia, gravar preço em centavos, usar `created_at` do seed e imagens placeholder do Picsum (`/seed/{seed}/{width}/{height}`). Não chame a moderação para os 57.
+
+**O que a IA propôs.** `scripts/seed.cjs`, um script `npm run seed`, leitura do `seed/ads.json`, inserção transacional direta como `approved` e placeholders `https://picsum.photos/seed/anuncio-{id}/640/480`.
+
+**O que aceitei.** O script manual, a recusa de base não vazia, o preço em centavos e o placeholder estável. Não alterei o mock nem o seed.
+
+**O que rejeitei ou corrigi.** Não importei no startup; não usei `TRUNCATE`; não passei os 57 pela moderação; e não editei o seed para adicionar imagens. Também conferi que os 57 preços estão dentro das faixas e que o seed tem cinco categorias (não há `colecionaveis`).
+
+**Como validei.** Rodei `npm run seed` no `anuncios_test` vazio: 57 linhas, 0 sem imagem/fora de `approved`; a segunda execução recusou com a mensagem de base não vazia. Depois recriei o schema de teste e a suíte voltou a 9/9. Depois da revisão, adicionei `test/seed.test.cjs`, que sobe a API, executa `seedDatabase`, verifica a listagem de 57 anúncios e a contagem de `veiculos`, confirma a recusa da segunda execução e limpa o banco; a suíte passou a 10/10. O banco de desenvolvimento não foi tocado.

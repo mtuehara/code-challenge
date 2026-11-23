@@ -42,8 +42,9 @@ Um teste com `DataSource` mockado não provaria nada disso. Por isso a suíte so
 | [`money.test.cjs`](money.test.cjs) | 1 | Conversão pura `toCents`/`fromCents`, sem Nest, banco ou mock. |
 | [`listing.test.cjs`](listing.test.cjs) | 1 | Paginação, filtro por categoria, desempate por `id DESC` com `createdAt` empatado, exclusão de reprovados, categoria sem resultados, página além do fim e queries inválidas. |
 | [`moderation.test.cjs`](moderation.test.cjs) | 1 | Retry 500/429, timeout, 503 com `Retry-After`, 502 para 400/status desconhecido, rejected sem retry e zero linhas em falha. |
+| [`seed.test.cjs`](seed.test.cjs) | 1 | Seed de 57 anúncios, leitura pela API, contagem por categoria, segunda execução recusada e limpeza. |
 
-Total: **9 testes**.
+Total: **10 testes**.
 
 ## Helpers
 

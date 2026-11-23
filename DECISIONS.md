@@ -68,12 +68,20 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` existem para os testes não esperarem 3 s/200 ms; os defaults de produção continuam 3000/200.
 - **Limite da evidência.** O teste `test/moderation.test.cjs` usa servidor controlado e cobre 500→200, 429→200, 500 sempre, timeout sempre, 400, status desconhecido e rejected. Não testei um 429 real do mock nem o comportamento sob carga concorrente; o pior caso teórico é ~6–7 s.
 
+## T-009 • Seed de demonstração
+
+- O seed é um script manual (`npm run seed`) em `scripts/seed.cjs`, que lê o `backend/api-mock/seed/ads.json` fornecido e insere 57 anúncios `approved` direto no banco, com UUID, `priceCents`, `createdAt` e imagens placeholder do Picsum. O arquivo do mock não é alterado. Alternativa descartada: importar no startup — poluiria produção, dependeria do arquivo do mock e atrasaria o boot.
+- O script exige base vazia e recusa a execução se já houver linhas, para não duplicar. Alternativa descartada: `TRUNCATE`/sobrescrever — destrutivo e surpreendente.
+- Os 57 anúncios **não** passam pela moderação. Seriam 57 chamadas, com 20% de erro e limite de 5 req/s; o seed é dado de demonstração, não um fluxo de publicação. Alternativa descartada: chamar o mock para cada anúncio.
+- O seed fornecido não tem `images`; usamos `https://picsum.photos/seed/anuncio-{id}/640/480` como placeholder estável. As cinco categorias presentes (não há `colecionaveis`) e os preços conferem com as faixas do mock.
+- **Evidência.** `test/seed.test.cjs` sobe a API, limpa a tabela, chama `seedDatabase`, verifica 57 linhas na API, contagem de `veiculos` e imagens, e confirma que a segunda execução recusa sem alterar os dados. O teste roda no `anuncios_test`, limpa o que criou e não depende do banco de desenvolvimento. Limite: ele exercita a função exportada, não o processo `npm run seed` nem o exit code da CLI; a execução manual da CLI foi feita antes do teste automatizado.
+
 ## Testes • `node:test` e integração
 
 - Mantivemos o runner nativo do Node (`node:test`) e testes de integração pela borda HTTP: Nest real, Postgres `anuncios_test`, migrations reais e um servidor HTTP controlado no lugar do mock. O desenho está em [`test/README.md`](test/README.md) e os helpers em [`test/support/helpers.cjs`](test/support/helpers.cjs).
 - Alternativa descartada: Jest + `@nestjs/testing` (`TestModule`) + `.spec.ts`. Exigiria dependências novas, configuração de TS/Jest e outro script; com banco real o ganho seria pequeno, e com `DataSource` mockado a suíte deixaria de provar persistência, constraints e migrations. `TestModule` continua sendo a opção se o serviço ganhar muitos providers e a necessidade de testes de unidade com DI.
 - A suíte usa `--test-concurrency=1` porque os arquivos compartilham o mesmo banco e aplicam migrations na inicialização. Testes de unidade puros (por exemplo, conversão de centavos na T-005) podem ser adicionados sem Nest, sem banco e sem dependência nova.
-- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~22 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
+- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~33 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
 
 ## Decisão transversal • Casos de uso e DTOs
 
@@ -82,3 +90,15 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - Um contrato de saída explícito (mapper `AdResponse`) passa a valer quando a T-005 converter centavos e a entidade deixar de ser devolvida diretamente. Não é um DTO de entrada extra; é a borda de resposta.
 - **Critério para reavaliar:** mais de ~6 endpoints, transações com múltiplos colaboradores, autorização ou políticas que variem por ação. Antes disso, o custo de um caso de uso por arquivo não se paga.
 - A reorganização de pastas em `infra/db`/`services` não foi decidida nesta fatia; a estrutura feature-first atual continua valendo até uma decisão explícita.
+
+## Tempo e retrospectiva
+
+- **Tempo aproximado:** 6–8 horas de trabalho efetivo, incluindo leitura do enunciado, análise inicial, implementação em fatias, testes, revisão independente e documentação. O prazo do desafio era de 7 dias corridos, com esforço esperado de 4–6 horas; o excedente foi usado principalmente na revisão e na documentação.
+- **O que faria diferente com mais tempo:**
+  - teria implementado a T-007 (falhas do mock) antes da T-005/T-006, para fechar o contrato externo mais cedo e evitar a promessa de “próxima fatia” na documentação;
+  - adicionaria idempotência (`Idempotency-Key` + tabela) para o `POST /ads`, cobrindo retry do cliente após timeout;
+  - evoluiria a listagem para keyset/cursor e mediria `OFFSET`/`COUNT(*)` com carga, em vez de só validar os índices com `EXPLAIN` forçado no seed;
+  - separaria as migrations de `database.ts` em `src/infra/db/migrations` e o cliente de moderação em `src/infra/moderation`, como discutido, se o projeto crescer;
+  - adicionaria logs estruturados/correlação para diagnosticar falhas do mock e um contrato OpenAPI gerado a partir dos schemas;
+  - rodaria a suíte em CI e em uma máquina limpa, com um teste automatizado do seed em banco temporário.
+- O que **não** mudaria: a escolha de `node:test` com integração HTTP/Postgres real, o Zod como contrato de entrada, os centavos no banco, o 201 para reprovado e a separação controller → service → repositório.
