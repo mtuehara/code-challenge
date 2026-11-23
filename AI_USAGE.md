@@ -25,3 +25,4 @@ Ao tentar abrir o healthcheck, encontrei outra lacuna. O primeiro teste aceitava
 ## Revisão humana
 
 Pedi que cada tarefa chegasse em uma branch própria para eu revisar o diff e decidir o merge. A revisão da T-001 apontou que o setup já existia, mas os documentos de decisões e uso de IA ainda faltavam. O Codex conferiu a árvore do commit `16f6602` e acrescentou os registros no mesmo PR. O fluxo de revisão está descrito em [AGENTS.md](AGENTS.md).
+O candidato pediu um start:dev com watcher. O Codex configurou Nodemon e verificou o reinício automático ao atualizar a data de src/app.ts. Após recompilar, GET /health na porta temporária 3011 devolveu {"status":"ok"}.

@@ -13,3 +13,4 @@ TypeORM e Zod já constam no manifesto para as próximas fatias. TypeORM será u
 
 **Limite da evidência.** O [teste de ambiente](test/setup.test.cjs) abre o Nest em porta livre e espera 404 na raiz. Depois, o próprio teste executa `SELECT current_database()` e exige `anuncios_test`. Isso verifica HTTP e isolamento da conexão de teste. A persistência de um anúncio pela aplicação será verificada na T-002.
 Atualização da T-001: o teste passou a verificar GET /health com 200 e {"status":"ok"} no lugar do 404 histórico. A rota verifica a disponibilidade HTTP do processo; a suíte continua conferindo o Postgres separadamente.
+Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.json. Cada alteração executa npm start, incluindo a compilação TypeScript com os metadados de decorators do Nest.
