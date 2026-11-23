@@ -63,3 +63,15 @@ test('reprovado preserva o motivo no detalhe', async () => {
   const detail = await fetch(base + result.headers.get('location'));
   assert.deepEqual(await detail.json(), saved);
 });
+test('entrada inválida retorna 400 antes de moderar ou salvar', async () => {
+  for (const invalid of [{title:'a'.repeat(9)}, {title:'a'.repeat(101)}, {price:0}, {price:-1}, {price:1.234}, {images:[]}, {images:['arquivo']}, {description:' '}, {category:'outra'}]) {
+    const res = await post({ ...ad, ...invalid });
+    assert.equal(res.status, 400, JSON.stringify(invalid));
+    assert.equal((await res.json()).error.code, 'validation_error');
+  }
+  assert.equal(calls.length, 0);
+  assert.equal((await db.query('SELECT count(*) FROM ads')).rows[0].count, '0');
+});
+test('aceita os dois limites inclusivos do título', async () => {
+  for (const size of [10, 100]) assert.equal((await post({ ...ad, title:'a'.repeat(size) })).status, 201);
+});

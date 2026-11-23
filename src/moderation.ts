@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AdInput } from './database';
+import { AdInput } from './input';
 
 @Injectable()
 export class ModerationClient {
@@ -17,3 +17,4 @@ export class ModerationClient {
     return { status: 'approved' as const, rejectionReason: null };
   }
 }
+

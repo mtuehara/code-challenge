@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Injectable, NotFoundException, Param, ParseUUIDPipe, Post, Res } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { AdEntity, AdInput } from './database';
+import { AdEntity } from './database';
+import { AdInput, adSchema, InputPipe } from './input';
 import { ModerationClient } from './moderation';
 
 @Injectable()
@@ -20,7 +21,7 @@ export class AdsService {
 export class AdsController {
   constructor(private readonly ads: AdsService) {}
   @Post()
-  async create(@Body() input: AdInput, @Res({ passthrough: true }) res: { location(path: string): void }) {
+  async create(@Body(new InputPipe(adSchema)) input: AdInput, @Res({ passthrough: true }) res: { location(path: string): void }) {
     const ad = await this.ads.create(input);
     res.location('/ads/' + ad.id);
     return ad;
@@ -28,3 +29,4 @@ export class AdsController {
   @Get(':id')
   detail(@Param('id', ParseUUIDPipe) id: string) { return this.ads.detail(id); }
 }
+

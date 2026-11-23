@@ -1,12 +1,6 @@
 import { DataSource, EntitySchema, MigrationInterface, QueryRunner } from 'typeorm';
 
-export interface AdInput {
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  images: string[];
-}
+import { AdInput } from './input';
 interface Ad extends AdInput {
   id: string;
   createdAt: Date;
@@ -43,3 +37,4 @@ export function connectDatabase() {
     entities: [AdEntity], migrations: [CreateAds1700000000000], migrationsRun: true,
   }).initialize();
 }
+
