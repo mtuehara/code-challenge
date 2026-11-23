@@ -75,3 +75,21 @@ test('entrada inválida retorna 400 antes de moderar ou salvar', async () => {
 test('aceita os dois limites inclusivos do título', async () => {
   for (const size of [10, 100]) assert.equal((await post({ ...ad, title:'a'.repeat(size) })).status, 201);
 });
+for (const [name, reply, status, code] of [
+  ['limite externo', res => { res.writeHead(429, { 'retry-after':'2' }); res.end(); }, 503, 'moderation_unavailable'],
+  ['timeout', res => setTimeout(() => res.end('{"status":"approved"}'), 400), 504, 'moderation_timeout'],
+  ['queda de conexão', res => res.destroy(), 503, 'moderation_unavailable'],
+  ['erro do serviço', res => { res.writeHead(500); res.end(); }, 503, 'moderation_unavailable'],
+  ['JSON inválido', res => res.end('{'), 502, 'moderation_protocol_error'],
+  ['reprovação sem motivo', res => res.end('{"status":"rejected"}'), 502, 'moderation_protocol_error'],
+]) test(name + ' não grava anúncio', async () => {
+  process.env.MODERATION_TIMEOUT_MS = '200';
+  try {
+    respond = reply;
+    const result = await post(ad);
+    assert.equal(result.status, status);
+    assert.equal((await result.json()).error.code, code);
+    if (name === 'limite externo') assert.equal(result.headers.get('retry-after'), '2');
+    assert.equal((await db.query('SELECT count(*) FROM ads')).rows[0].count, '0');
+  } finally { delete process.env.MODERATION_TIMEOUT_MS; }
+});
