@@ -1,7 +1,8 @@
 import { Body, Controller, Get, Injectable, NotFoundException, Param, ParseUUIDPipe, Post, Res } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AdEntity } from './database';
-import { AdInput, adSchema, InputPipe } from './input';
+import { Query } from '@nestjs/common';
+import { AdInput, adSchema, InputPipe, ListInput, listSchema } from './input';
 import { ModerationClient } from './moderation';
 
 @Injectable()
@@ -16,6 +17,14 @@ export class AdsService {
     if (!ad) throw new NotFoundException('Anúncio inexistente');
     return ad;
   }
+  async list({ category, page, pageSize }: ListInput) {
+    const [items, total] = await this.db.getRepository(AdEntity).findAndCount({
+      where: { status: 'approved', category },
+      order: { createdAt: 'DESC', id: 'DESC' },
+      skip: (page - 1) * pageSize, take: pageSize,
+    });
+    return { items, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };
+  }
 }
 @Controller('ads')
 export class AdsController {
@@ -28,5 +37,7 @@ export class AdsController {
   }
   @Get(':id')
   detail(@Param('id', ParseUUIDPipe) id: string) { return this.ads.detail(id); }
+  @Get()
+  list(@Query(new InputPipe(listSchema)) query: ListInput) { return this.ads.list(query); }
 }
 

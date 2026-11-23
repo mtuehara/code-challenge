@@ -93,3 +93,21 @@ for (const [name, reply, status, code] of [
     assert.equal((await db.query('SELECT count(*) FROM ads')).rows[0].count, '0');
   } finally { delete process.env.MODERATION_TIMEOUT_MS; }
 });
+test('filtra categoria e publicação antes de ordenar, contar e paginar', async () => {
+  const ids = [];
+  for (const category of ['esportes','moveis','esportes','esportes']) {
+    const result = await post({ ...ad, category });
+    assert.equal(result.status, 201);
+    ids.push((await result.json()).id);
+  }
+  respond = res => res.end('{"status":"rejected","reason":"price_out_of_range"}');
+  assert.equal((await post({...ad, price:1})).status, 201);
+  for (const [page, expected] of [[1,[ids[3],ids[2]]],[2,[ids[0]]],[3,[]]]) {
+    const res = await fetch(base + '/ads?category=esportes&pageSize=2&page=' + page);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.items.map(row => row.id), expected);
+    assert.deepEqual({...body,items:[]}, {page,pageSize:2,total:3,totalPages:2,items:[]});
+  }
+  for (const query of ['page=0','pageSize=101','category=outra']) assert.equal((await fetch(base+'/ads?'+query)).status,400);
+});

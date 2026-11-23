@@ -13,6 +13,13 @@ export const adSchema = z.object({
   images: z.array(z.url({ protocol: /^https?$/ })).min(1),
 });
 export type AdInput = z.infer<typeof adSchema>;
+const positiveInteger = z.string().regex(/^[1-9]\d*$/).transform(Number).pipe(z.int().positive());
+export const listSchema = z.object({
+  category: category.optional(),
+  page: positiveInteger.default(1),
+  pageSize: positiveInteger.pipe(z.number().max(100)).default(20),
+}).refine(q => Number.isSafeInteger((q.page - 1) * q.pageSize), 'Página fora do limite.');
+export type ListInput = z.infer<typeof listSchema>;
 export class InputPipe implements PipeTransform {
   constructor(private readonly schema: z.ZodType) {}
   transform(input: unknown) {
