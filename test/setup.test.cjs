@@ -4,6 +4,7 @@ const { Client } = require('pg');
 const { createApp } = require('../dist/app');
 
 test('Nest atende HTTP e o banco isolado aceita consultas', async () => {
+  process.env.DATABASE_URL = 'postgres://anuncios:local_dev@127.0.0.1:5433/anuncios_test';
   const db = new Client({ connectionString: 'postgres://anuncios:local_dev@127.0.0.1:5433/anuncios_test' });
   const app = await createApp();
   try {

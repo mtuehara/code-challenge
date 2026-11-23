@@ -1,6 +1,6 @@
 # Code Challenge — Grupo OLX
 
-## Ambiente de desenvolvimento (T-001)
+## Ambiente de desenvolvimento
 
 Na raiz, com Docker Compose e Node 24:
 
@@ -17,6 +17,51 @@ Para iniciar a API local, execute `npm start` e mantenha o terminal aberto. O co
 Para desenvolver com reinício automático, execute `npm run start:dev`. O Nodemon observa `src` e `tsconfig.json` e executa `npm start` após cada alteração. Encerre com Ctrl+C. No PowerShell, caso a política bloqueie `npm.ps1`, use `npm.cmd run start:dev`.
 
 Se aparecer `EADDRINUSE`, a porta já está ocupada. No PowerShell, use `$env:PORT = '3001'` antes de `npm start` e abra a URL impressa no terminal.
+
+## Criar e consultar um anúncio aprovado (T-002)
+
+Inicie também o mock fornecido e a aplicação:
+
+```sh
+docker compose -f backend/api-mock/docker-compose.yml up -d --wait
+npm run start:dev
+```
+
+O Nest conecta ao banco de desenvolvimento na porta 5432 e aplica a migration inicial automaticamente. `DATABASE_URL` permite alterar a conexão e `MODERATION_URL` define a URL do serviço externo (padrão `http://localhost:8787`). A chamada Axios tem timeout de 3 segundos.
+
+Em outro terminal PowerShell:
+
+```powershell
+$body = @{
+  title = 'Bicicleta urbana'
+  description = 'Bicicleta usada em bom estado.'
+  price = 800.25
+  category = 'esportes'
+  images = @('https://example.org/bicicleta.jpg')
+} | ConvertTo-Json
+$ad = Invoke-RestMethod http://localhost:3000/ads -Method Post -ContentType application/json -Body $body
+Invoke-RestMethod "http://localhost:3000/ads/$($ad.id)"
+```
+
+Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`. `GET /ads/{id}` retorna 200 com o mesmo objeto:
+
+```json
+{
+  "id": "692d0134-3e35-4158-b40d-4cffab8582e6",
+  "title": "Bicicleta urbana",
+  "description": "Bicicleta usada em bom estado.",
+  "price": 800.25,
+  "category": "esportes",
+  "images": ["https://example.org/bicicleta.jpg"],
+  "status": "approved",
+  "rejectionReason": null,
+  "createdAt": "2026-11-23T17:40:30.177Z"
+}
+```
+
+Um UUID inexistente retorna 404 e um ID malformado retorna 400. A suíte chama a moderação por HTTP contra um servidor controlado, reinicia o Nest e recupera o anúncio usando a mesma base. Ela remove somente o registro criado pelo teste.
+
+Esta fatia cobre entrada válida e aprovação. Reprovação, validações completas, tratamento específico de falhas externas e listagem serão entregues nas próximas fatias. Por enquanto, uma resposta diferente de aprovação ou falha do mock resulta em 500 e interrompe a criação antes da gravação.
 
 Olá! Que bom ter você por aqui.
 
