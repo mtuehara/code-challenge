@@ -26,7 +26,7 @@ export class Ad {
   images!: string[];
 
   @Column('text')
-  status!: 'approved';
+  status!: 'approved' | 'rejected';
 
   @Column('text', { nullable: true })
   rejectionReason!: string | null;

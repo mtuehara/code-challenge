@@ -27,7 +27,7 @@ docker compose -f backend/api-mock/docker-compose.yml up -d --wait
 npm run start:dev
 ```
 
-O Nest conecta ao banco de desenvolvimento na porta 5432 e aplica a migration inicial automaticamente. `DATABASE_URL` permite alterar a conexão e `MODERATION_URL` define a URL do serviço externo (padrão `http://localhost:8787`). A chamada Axios tem timeout de 3 segundos.
+O Nest conecta ao banco de desenvolvimento na porta 5432 e aplica as migrations automaticamente. `DATABASE_URL` permite alterar a conexão e `MODERATION_URL` define a URL do serviço externo (padrão `http://localhost:8787`). A chamada Axios tem timeout de 3 segundos.
 
 Em outro terminal PowerShell:
 
@@ -63,7 +63,7 @@ Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`.
 
 Um UUID inexistente retorna 404 e um ID malformado retorna 400. A suíte chama a moderação por HTTP contra um servidor controlado, reinicia o Nest e recupera o anúncio usando a mesma base. Ela remove somente o registro criado pelo teste.
 
-Esta fatia cobre entrada válida e aprovação. A T-003 acrescenta a validação de entrada. Reprovação, listagem e tratamento específico de falhas externas serão entregues nas próximas fatias. Por enquanto, uma resposta diferente de aprovação ou falha do mock resulta em 500 e interrompe a criação antes da gravação.
+Esta fatia cobre entrada válida e aprovação. A T-003 acrescenta a validação de entrada e a T-004 a reprovação persistida. Listagem e tratamento específico de falhas externas serão entregues nas próximas fatias. Por enquanto, uma falha do mock (400, 429, 500 ou timeout) resulta em 500 e interrompe a criação antes da gravação.
 
 ## Validação de entrada (T-003)
 
@@ -89,6 +89,26 @@ Campos desconhecidos são ignorados. Payload inválido retorna 400 com os campos
 ```
 
 O teste `test/validation.test.cjs` cobre título, descrição, preço, categoria e imagens, além dos limites de 10 e 100 caracteres. A fatia ainda não altera o armazenamento do preço: a T-005 passará a guardar centavos.
+
+## Reprovação (T-004)
+
+Quando a moderação responde 200 com `{"status":"rejected"}`, o anúncio também é gravado, mas com `status: "rejected"` e o motivo em `rejectionReason`. O `POST /ads` continua retornando 201 com `Location: /ads/{id}`, e o `GET /ads/{id}` devolve o mesmo recurso. Exemplo:
+
+```json
+{
+  "id": "2e1a027a-3e80-4763-b31d-ef9341941446",
+  "title": "Bicicleta com whatsapp",
+  "description": "Fale comigo no whatsapp.",
+  "price": 800.25,
+  "category": "esportes",
+  "images": ["https://example.org/bicicleta.jpg"],
+  "status": "rejected",
+  "rejectionReason": "contact_info_not_allowed",
+  "createdAt": "2026-11-23T19:54:45.436Z"
+}
+```
+
+O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta `reason`. O cliente aceita as duas chaves e expõe o valor como `rejectionReason`. A migration `AddRejectedStatus1795536000000` amplia o `CHECK` da coluna `status` para aceitar `approved` e `rejected`; a migration inicial não foi editada. Reprovação ainda não aparece na futura listagem (T-006): a decisão é excluí-la do catálogo público e mantê-la acessível pelo detalhe.
 
 Olá! Que bom ter você por aqui.
 

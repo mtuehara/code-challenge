@@ -48,3 +48,15 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 **O que rejeitei ou corrigi.** Não usei `class-validator` nem instalei dependência; não dupliquei as faixas de preço do mock; não arredondei `800.255`; e mantive o `CreateAdInput` fora da entidade, para não acoplar o contrato HTTP à persistência. O primeiro `npm test` falhou com `201 !== 400` no caso de título com 9 caracteres, que era exatamente a falha esperada. Depois da implementação, `npm test` passou nos quatro testes.
 
 **Como validei.** A falha foi observada antes da implementação; o teste verifica status 400, `statusCode`, `error`, `message`, `details`, contador de chamadas da moderação igual a zero e `count(*)` igual a zero. O caso válido confirma 201, título trimado na resposta, título trimado no payload enviado à moderação e título trimado no banco. A saída real está em `specs/anuncios/t003.md`.
+
+## T-004 • Reprovação persistida
+
+**Prompt** — Implemente a T-004 a partir da `t003`, com teste pela API antes do código. O mock pode devolver `200 {"status":"rejected"}`; hoje isso vira 500. O anúncio reprovado deve ser gravado com status e motivo, o POST deve devolver 201 com `Location` e o GET deve devolver o motivo. Crie uma migration nova para o `CHECK`; não edite a migration aplicada e não altere o mock. Leia `rejection_reason` e `reason`, porque o mock real e o `API.md` divergem.
+
+**O que a IA propôs.** Um `ModerationResult` no cliente, a migration `AddRejectedStatus1795536000000`, a união `'approved' | 'rejected'` na entidade e a gravação de `status`/`rejectionReason` no serviço. A escolha de 201 e a leitura das duas chaves foram mantidas.
+
+**O que aceitei.** A migration nova, o resultado tipado, o 201 com `Location`, a leitura de `rejection_reason` com fallback para `reason` e o teste com as duas variantes. A migration inicial ficou intocada.
+
+**O que rejeitei ou corrigi.** Não usei 422, porque o candidato escolheu 201; não li apenas `reason`, que deixaria o motivo nulo no mock real; não editei a migration aplicada; e não tratei falha externa como rejeição. O primeiro `npm test` falhou com `500 !== 201`, que era a falha esperada. Depois da implementação, `npm test` passou nos cinco testes.
+
+**Como validei.** O teste controlado confere 201, `status`, `rejectionReason`, `Location`, `GET` e a linha no banco, inclusive a variante `reason`. Também chamei o mock real com um anúncio contendo “whatsapp”: a API respondeu 201 com `rejectionReason: "contact_info_not_allowed"`, o GET devolveu o mesmo motivo e o banco confirmou `status='rejected'`. A constraint e as duas migrations aplicadas foram conferidas no `pg_constraint`/`advertisement_migrations`. A saída real está em `specs/anuncios/t004.md`.

@@ -13,7 +13,7 @@ export class AdsService {
   ) {}
 
   async create(input: CreateAdInput): Promise<Ad> {
-    await this.moderation.approve(input);
+    const moderation = await this.moderation.check(input);
     const ad = this.database.getRepository(Ad).create({
       id: randomUUID(),
       title: input.title,
@@ -21,8 +21,8 @@ export class AdsService {
       price: input.price,
       category: input.category,
       images: input.images,
-      status: 'approved',
-      rejectionReason: null,
+      status: moderation.status,
+      rejectionReason: moderation.status === 'rejected' ? moderation.reason : null,
       createdAt: new Date(),
     });
     return this.database.getRepository(Ad).save(ad);
