@@ -170,11 +170,15 @@ O timeout por tentativa é 3 s e o backoff padrão é 200 ms. Em testes, `MODERA
 
 ## Seed de demonstração (T-009)
 
-Com o banco de desenvolvimento vazio e as migrations aplicadas (`npm start` ou `npm test` já fizeram isso), rode:
+Com o banco de desenvolvimento vazio e as migrations aplicadas. Atenção: `npm test` usa o banco de **teste** (`anuncios_test`, 5433) e **não** migra o banco de desenvolvimento (`anuncios`, 5432). Prepare assim:
 
 ```sh
+docker compose up -d --wait postgres
+npm start          # aplica as migrations; encerre com Ctrl+C
 npm run seed
 ```
+
+O seed não aplica migrations sozinho.
 
 O script lê [`backend/api-mock/seed/ads.json`](backend/api-mock/seed/ads.json) — o arquivo fornecido, que não é alterado — e insere os **57 anúncios** como `approved`, com UUID, `priceCents`, `createdAt` original e uma imagem placeholder estável no Picsum (`https://picsum.photos/seed/anuncio-{id}/640/480`). O seed fornecido não tem imagens; o placeholder é só para a demonstração da listagem.
 

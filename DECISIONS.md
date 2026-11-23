@@ -74,14 +74,14 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - O script exige base vazia e recusa a execução se já houver linhas, para não duplicar. Alternativa descartada: `TRUNCATE`/sobrescrever — destrutivo e surpreendente.
 - Os 57 anúncios **não** passam pela moderação. Seriam 57 chamadas, com 20% de erro e limite de 5 req/s; o seed é dado de demonstração, não um fluxo de publicação. Alternativa descartada: chamar o mock para cada anúncio.
 - O seed fornecido não tem `images`; usamos `https://picsum.photos/seed/anuncio-{id}/640/480` como placeholder estável. As cinco categorias presentes (não há `colecionaveis`) e os preços conferem com as faixas do mock.
-- **Limite da evidência.** A execução foi verificada no `anuncios_test` (57 linhas, 0 sem imagem/fora de approved) e a segunda execução recusou; depois o schema de teste foi recriado e a suíte voltou a 9/9. Não há teste automatizado do script no `npm test`, para não acoplar a suíte a um seed de 57 linhas.
+- **Evidência.** `test/seed.test.cjs` sobe a API, limpa a tabela, chama `seedDatabase`, verifica 57 linhas na API, contagem de `veiculos` e imagens, e confirma que a segunda execução recusa sem alterar os dados. O teste roda no `anuncios_test`, limpa o que criou e não depende do banco de desenvolvimento. Limite: ele exercita a função exportada, não o processo `npm run seed` nem o exit code da CLI; a execução manual da CLI foi feita antes do teste automatizado.
 
 ## Testes • `node:test` e integração
 
 - Mantivemos o runner nativo do Node (`node:test`) e testes de integração pela borda HTTP: Nest real, Postgres `anuncios_test`, migrations reais e um servidor HTTP controlado no lugar do mock. O desenho está em [`test/README.md`](test/README.md) e os helpers em [`test/support/helpers.cjs`](test/support/helpers.cjs).
 - Alternativa descartada: Jest + `@nestjs/testing` (`TestModule`) + `.spec.ts`. Exigiria dependências novas, configuração de TS/Jest e outro script; com banco real o ganho seria pequeno, e com `DataSource` mockado a suíte deixaria de provar persistência, constraints e migrations. `TestModule` continua sendo a opção se o serviço ganhar muitos providers e a necessidade de testes de unidade com DI.
 - A suíte usa `--test-concurrency=1` porque os arquivos compartilham o mesmo banco e aplicam migrations na inicialização. Testes de unidade puros (por exemplo, conversão de centavos na T-005) podem ser adicionados sem Nest, sem banco e sem dependência nova.
-- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~22 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
+- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~33 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
 
 ## Decisão transversal • Casos de uso e DTOs
 

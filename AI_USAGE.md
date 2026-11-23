@@ -121,4 +121,4 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 
 **O que rejeitei ou corrigi.** Não importei no startup; não usei `TRUNCATE`; não passei os 57 pela moderação; e não editei o seed para adicionar imagens. Também conferi que os 57 preços estão dentro das faixas e que o seed tem cinco categorias (não há `colecionaveis`).
 
-**Como validei.** Rodei `npm run seed` no `anuncios_test` vazio: 57 linhas, 0 sem imagem/fora de `approved`; a segunda execução recusou com a mensagem de base não vazia. Depois recriei o schema de teste e a suíte voltou a 9/9. O banco de desenvolvimento não foi tocado.
+**Como validei.** Rodei `npm run seed` no `anuncios_test` vazio: 57 linhas, 0 sem imagem/fora de `approved`; a segunda execução recusou com a mensagem de base não vazia. Depois recriei o schema de teste e a suíte voltou a 9/9. Depois da revisão, adicionei `test/seed.test.cjs`, que sobe a API, executa `seedDatabase`, verifica a listagem de 57 anúncios e a contagem de `veiculos`, confirma a recusa da segunda execução e limpa o banco; a suíte passou a 10/10. O banco de desenvolvimento não foi tocado.
