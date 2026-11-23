@@ -98,3 +98,15 @@ A implementação fica em PR próprio para revisão humana. O cenário sugerido 
 **Como validei.** `npm test` → `tests 8`, `pass 8`, `fail 0`. O teste `listing.test.cjs` insere cinco fixtures por SQL (quatro aprovados, sendo dois com o mesmo `createdAt`, e um reprovado), verifica as duas páginas, o filtro por categoria, os padrões, `pageSize=100`, categoria sem resultados, página além do fim, doze queries inválidas e que `GET /ads` não chama a moderação. Também conferi no banco os índices parciais e as quatro migrations; o banco de teste terminou limpo.
 
 **Revisão independente.** Rodei um subagente revisor antes do merge. Ele aprovou sem P1/P2 e apontou P3: o teste não exercitava o desempate por `id DESC`; as fixtures eram inseridas antes das migrations (quebrava o teste isolado em banco novo); faltavam casos de query vazia/limites; e havia frases desatualizadas no README/PR. Corrigi o teste (fixtures depois do app, empate com IDs diferentes, mais casos e `totalPages: 0`), ajustei a documentação e mantive o índice como está, qualificando a alegação de `EXPLAIN`.
+
+## T-007 • Falhas da moderação
+
+**Prompt** — Implemente a T-007 com teste antes do código: duas tentativas para 429/5xx/timeout/erro de rede, respeitando `Retry-After`; depois de esgotar, 503 com `Retry-After` e sem gravar anúncio. 400 ou status desconhecido deve virar 502, sem retry. Reprovação válida continua 201 com motivo. Não use fila nem circuit breaker.
+
+**O que a IA propôs.** `ModerationUnavailableError`/`ModerationProtocolError`, o loop de duas tentativas no `ModerationClient`, o backoff e o teto do `Retry-After`, e a tradução para 503/502 no controller, mantendo a moderação antes do save.
+
+**O que aceitei.** O retry curto, o 503 com header, o 502 para erro de contrato e a possibilidade de ajustar timeout/backoff por env nos testes. O corpo do erro continua no padrão do Nest.
+
+**O que rejeitei ou corrigi.** Não usei retry infinito, circuit breaker, fila assíncrona ou retry para 400/rejected; não coloquei headers HTTP no cliente; e não gravei nada em falha técnica. O primeiro teste falhou por um detalhe meu: os títulos de cenário tinham 9 caracteres e a validação da T-003 os recusava com 400; corrigi os títulos e a falha passou a ser a esperada (`500 !== 201`). Depois da implementação, `npm test` passou nos nove testes.
+
+**Como validei.** `npm test` → `tests 9`, `pass 9`, `fail 0`. O teste controlado cobre 500→200, 429→200, 500 sempre, timeout sempre, 400, status desconhecido e rejected; confere contagem de tentativas, `Retry-After: 1` no 503, 502 sem retry e `count(*) = 0` para falhas. O banco de teste terminou limpo.

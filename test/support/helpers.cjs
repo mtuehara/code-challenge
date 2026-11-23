@@ -33,6 +33,7 @@ async function startModerationServer(handle) {
     res.writeHead(response.status ?? 200, {
       'content-type': 'application/json',
       connection: 'close',
+      ...(response.headers ?? {}),
     });
     res.end(JSON.stringify(response.body));
   });
