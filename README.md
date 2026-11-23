@@ -14,6 +14,8 @@ O teste compila o NestJS, inicia um servidor em porta livre e verifica o acesso 
 
 Para iniciar a API local, execute `npm start` e mantenha o terminal aberto. O comando compila a aplicação e imprime a URL de verificação. Abra [GET /health](http://localhost:3000/health) no navegador. A resposta esperada é HTTP 200 com `{"status":"ok"}`. Essa rota verifica se o processo Nest atende HTTP. A conexão com o banco é verificada separadamente pela suíte.
 
+Para desenvolver com reinício automático, execute `npm run start:dev`. O Nodemon observa `src` e `tsconfig.json` e executa `npm start` após cada alteração. Encerre com Ctrl+C. No PowerShell, caso a política bloqueie `npm.ps1`, use `npm.cmd run start:dev`.
+
 Se aparecer `EADDRINUSE`, a porta já está ocupada. No PowerShell, use `$env:PORT = '3001'` antes de `npm start` e abra a URL impressa no terminal.
 
 Olá! Que bom ter você por aqui.
