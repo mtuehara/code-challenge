@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Res } from '@nestjs/common';
 import { AdsService } from './ads.service';
-import { CreateAdInput } from './ad.entity';
+import { CreateAdInput, createAdSchema } from './ad.schema';
+import { ZodValidationPipe } from './zod-validation.pipe';
 
 @Controller('ads')
 export class AdsController {
@@ -8,7 +9,7 @@ export class AdsController {
 
   @Post()
   async create(
-    @Body() input: CreateAdInput,
+    @Body(new ZodValidationPipe(createAdSchema)) input: CreateAdInput,
     @Res({ passthrough: true }) response: { location(path: string): void },
   ) {
     const ad = await this.ads.create(input);
