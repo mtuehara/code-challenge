@@ -43,7 +43,7 @@ $ad = Invoke-RestMethod http://localhost:3000/ads -Method Post -ContentType appl
 Invoke-RestMethod "http://localhost:3000/ads/$($ad.id)"
 ```
 
-O cliente envia `price` em reais, como número JSON. No exemplo, `800.25` representa R$ 800,25 e é enviado nesse formato também à moderação. A T-002 grava o preço em uma coluna `numeric`. Com a mudança prevista, o banco guardará `80025` centavos para evitar erros de ponto flutuante nos cálculos, e a API continuará recebendo e devolvendo `800.25`.
+O cliente envia `price` em reais, como número JSON. No exemplo, `800.25` representa R$ 800,25 e é enviado nesse formato também à moderação. Desde a T-005, o banco guarda `priceCents` inteiro — `80025` — para evitar erros de ponto flutuante nos cálculos; a API continua recebendo e devolvendo `800.25` em reais. A conversão usa a representação decimal, sem multiplicar o `number` por 100.
 
 Com aprovação da moderação, `POST /ads` retorna 201 e `Location: /ads/{id}`. `GET /ads/{id}` retorna 200 com o mesmo objeto:
 
@@ -109,6 +109,12 @@ Quando a moderação responde 200 com `{"status":"rejected"}`, o anúncio també
 ```
 
 O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta `reason`. O cliente aceita as duas chaves e expõe o valor como `rejectionReason`. A migration `AddRejectedStatus1795536000000` amplia o `CHECK` da coluna `status` para aceitar `approved` e `rejected`; a migration inicial não foi editada. Reprovação ainda não aparece na futura listagem (T-006): a decisão é excluí-la do catálogo público e mantê-la acessível pelo detalhe.
+
+## Preço em centavos (T-005)
+
+`price` continua sendo um número em reais na entrada e na saída. No banco, a coluna passou a ser `priceCents integer`: `800.25` vira `80025`, `0.1` vira `10` e `1` vira `100`. A migration `AddPriceCents1795622400000` adiciona a coluna, faz o backfill das linhas existentes, cria o `CHECK ("priceCents" > 0)` e remove a coluna `numeric` antiga. Ela recusa dados legados com mais de 2 casas decimais em vez de arredondar silenciosamente.
+
+A resposta HTTP não expõe `priceCents`: o mapper `toAdResponse` devolve `price` em reais. A conversão de entrada usa a string decimal (`"800.25"` → `80025`), sem `price * 100` em ponto flutuante. Preço com mais de 2 casas continua retornando 400.
 
 Olá! Que bom ter você por aqui.
 

@@ -43,12 +43,20 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - O tipo `status` da entidade passou a ser `'approved' | 'rejected'`; `rejectionReason` continua nullable. A listagem e a exclusão de reprovados ficam para a T-006; falhas do mock permanecem 500 até a T-007.
 - **Limite da evidência.** O teste `test/rejection.test.cjs` usa servidor controlado e cobre as duas chaves de motivo. A verificação com o mock real devolveu 201, `rejectionReason: "contact_info_not_allowed"`, GET 200 e a linha no banco. O primeiro `npm test` falhou com 500 onde o teste esperava 201; depois da implementação, os cinco testes passaram.
 
+## T-005 • Preço em centavos
+
+- O `price` continua em reais na entrada e na saída da API; o banco passou a guardar `priceCents integer`. A migration `AddPriceCents1795622400000` adiciona a coluna, faz backfill com `ROUND(price * 100)`, exige `> 0`, remove a coluna `numeric` antiga e recusa dados legados com mais de 2 casas decimais em vez de arredondar silenciosamente. A migration inicial não foi editada.
+- A conversão de entrada usa a representação decimal: `800.25` vira a string `"800" + "25"` e o inteiro `80025`; não há `price * 100` em ponto flutuante. `fromCents` devolve o número em reais para o mapper `toAdResponse`. O campo `priceCents` não aparece na resposta HTTP.
+- Alternativas descartadas: manter `numeric` com scale 2 (ainda depende de arredondamento), usar transformer no mesmo campo (esconde a unidade e deixa a entidade ambígua) e multiplicar o `number` por 100 (reintroduz o problema que a decisão quer evitar).
+- A entidade `Ad` agora tem `priceCents`; `AdsService.create` converte uma vez, antes de salvar, e `findById` usa o mesmo mapper. `ModerationClient` continua recebendo o preço em reais.
+- **Limite da evidência.** O teste `test/price.test.cjs` cobre API/banco e o `test/money.test.cjs` cobre a conversão pura. O backfill foi conferido em um banco temporário com uma linha legada `800.25`, que virou `80025`. A suíte não roda o `down` da migration. Os sete testes passam depois da implementação.
+
 ## Testes • `node:test` e integração
 
 - Mantivemos o runner nativo do Node (`node:test`) e testes de integração pela borda HTTP: Nest real, Postgres `anuncios_test`, migrations reais e um servidor HTTP controlado no lugar do mock. O desenho está em [`test/README.md`](test/README.md) e os helpers em [`test/support/helpers.cjs`](test/support/helpers.cjs).
 - Alternativa descartada: Jest + `@nestjs/testing` (`TestModule`) + `.spec.ts`. Exigiria dependências novas, configuração de TS/Jest e outro script; com banco real o ganho seria pequeno, e com `DataSource` mockado a suíte deixaria de provar persistência, constraints e migrations. `TestModule` continua sendo a opção se o serviço ganhar muitos providers e a necessidade de testes de unidade com DI.
 - A suíte usa `--test-concurrency=1` porque os arquivos compartilham o mesmo banco e aplicam migrations na inicialização. Testes de unidade puros (por exemplo, conversão de centavos na T-005) podem ser adicionados sem Nest, sem banco e sem dependência nova.
-- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~12 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
+- **Limite da evidência.** A suíte depende de Docker/Postgres em 5433 e roda em ~15 s; não é unitária e não substitui um teste de carga. O mock real não é usado nos testes automatizados por causa do erro aleatório e do limite de 5 req/s.
 
 ## Decisão transversal • Casos de uso e DTOs
 
