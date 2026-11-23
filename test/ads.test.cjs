@@ -53,3 +53,13 @@ test('aprovado continua consultável depois de reiniciar a API', async () => {
   assert.equal(detail.status, 200);
   assert.deepEqual(await detail.json(), saved);
 });
+test('reprovado preserva o motivo no detalhe', async () => {
+  respond = res => res.end(JSON.stringify({ status: 'rejected', reason: 'price_out_of_range' }));
+  const result = await post({ ...ad, price: 1 });
+  assert.equal(result.status, 201);
+  const saved = await result.json();
+  assert.equal(saved.status, 'rejected');
+  assert.equal(saved.rejectionReason, 'price_out_of_range');
+  const detail = await fetch(base + result.headers.get('location'));
+  assert.deepEqual(await detail.json(), saved);
+});

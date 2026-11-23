@@ -10,6 +10,9 @@ export class ModerationClient {
       body: JSON.stringify({ title, description, price, category }),
     });
     const result = await response.json();
+    if (response.ok && result.status === 'rejected' && typeof result.reason === 'string' && result.reason.length > 0) {
+      return { status: 'rejected' as const, rejectionReason: result.reason as string };
+    }
     if (!response.ok || result.status !== 'approved') throw new Error('Decisão inesperada');
     return { status: 'approved' as const, rejectionReason: null };
   }
