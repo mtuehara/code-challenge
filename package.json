@@ -7,7 +7,8 @@
     "prestart": "npm run build",
     "start": "node dist/main.js",
     "start:dev": "nodemon --watch src --watch tsconfig.json --ext ts,json --exec \"npm start\"",
-    "test": "npm run build && node --test --test-concurrency=1 test/*.test.cjs"
+    "test": "npm run build && node --test --test-concurrency=1 test/*.test.cjs",
+    "seed": "npm run build && node scripts/seed.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11",
