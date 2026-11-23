@@ -96,6 +96,16 @@ class AddListingIndexes1795708800000 implements MigrationInterface {
   }
 }
 
+class WidenPriceCents1795795200000 implements MigrationInterface {
+  async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('ALTER TABLE advertisements ALTER COLUMN "priceCents" TYPE bigint');
+  }
+
+  async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('ALTER TABLE advertisements ALTER COLUMN "priceCents" TYPE integer');
+  }
+}
+
 export async function connectDatabase(): Promise<DataSource> {
   const database = new DataSource({
     type: 'postgres',
@@ -106,6 +116,7 @@ export async function connectDatabase(): Promise<DataSource> {
       AddRejectedStatus1795536000000,
       AddPriceCents1795622400000,
       AddListingIndexes1795708800000,
+      WidenPriceCents1795795200000,
     ],
     migrationsTableName: 'advertisement_migrations',
     migrationsRun: true,

@@ -7,6 +7,7 @@ const {
   postAd,
   getJson,
   deleteAds,
+  countAds,
 } = require('./support/helpers.cjs');
 
 const baseInput = {
@@ -88,6 +89,38 @@ test('POST /ads persiste reprovado com motivo e GET devolve o motivo', async () 
     await api?.close();
     await moderation.close();
     await deleteAds(db, createdAdIds);
+    await db.end();
+  }
+});
+
+test('POST responde 502 quando a reprovação vem sem motivo válido', async () => {
+  const db = await connectTestDatabase();
+  let reasons;
+  const moderation = await startModerationServer(() => ({ body: { status: 'rejected', ...reasons } }));
+  const ids = [];
+  let api;
+
+  try {
+    api = await startTestApi(moderation.url);
+    const before = await countAds(db);
+    for (reasons of [{}, { reason: null }, { rejection_reason: '   ' }, { reason: 12 }]) {
+      const calls = moderation.requests.length;
+      const { response, body } = await postAd(api.url, baseInput);
+      if (body.id) ids.push(body.id);
+      assert.equal(response.status, 502);
+      assert.equal(moderation.requests.length, calls + 1);
+      assert.equal(await countAds(db), before);
+    }
+
+    reasons = { rejection_reason: ' ', reason: 'price_out_of_range' };
+    const { response, body } = await postAd(api.url, baseInput);
+    if (body.id) ids.push(body.id);
+    assert.equal(response.status, 201);
+    assert.equal(body.rejectionReason, 'price_out_of_range');
+  } finally {
+    await api?.close();
+    await moderation.close();
+    await deleteAds(db, ids);
     await db.end();
   }
 });

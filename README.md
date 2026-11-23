@@ -88,11 +88,11 @@ Campos desconhecidos são ignorados. Payload inválido retorna 400 com os campos
 }
 ```
 
-O teste `test/validation.test.cjs` cobre título, descrição, preço, categoria e imagens, além dos limites de 10 e 100 caracteres. A fatia ainda não altera o armazenamento do preço: a T-005 passará a guardar centavos.
+O teste `test/validation.test.cjs` cobre título, descrição, preço, categoria e imagens, além dos limites de 10 e 100 caracteres.
 
 ## Reprovação (T-004)
 
-Quando a moderação responde 200 com `{"status":"rejected"}`, o anúncio também é gravado, mas com `status: "rejected"` e o motivo em `rejectionReason`. O `POST /ads` continua retornando 201 com `Location: /ads/{id}`, e o `GET /ads/{id}` devolve o mesmo recurso. Exemplo:
+Quando a moderação responde 200 com `{"status":"rejected","reason":"price_out_of_range"}` ou outra reprovação com motivo, o anúncio também é gravado, mas com `status: "rejected"` e o motivo em `rejectionReason`. O `POST /ads` continua retornando 201 com `Location: /ads/{id}`, e o `GET /ads/{id}` devolve o mesmo recurso. Exemplo:
 
 ```json
 {
@@ -113,6 +113,8 @@ O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta
 ## Preço em centavos (T-005)
 
 `price` continua sendo um número em reais na entrada e na saída. No banco, a coluna passou a ser `priceCents integer`: `800.25` vira `80025`, `0.1` vira `10` e `1` vira `100`. A migration `AddPriceCents1795622400000` adiciona a coluna, faz o backfill das linhas existentes, cria o `CHECK ("priceCents" > 0)` e remove a coluna `numeric` antiga. Ela recusa dados legados com mais de 2 casas decimais em vez de arredondar silenciosamente.
+
+A migration seguinte amplia a coluna de centavos para `bigint`. A API aceita até R$ 90.071.992.547.409,90, limite representável na entrada JSON dentro da precisão segura em centavos. Valores maiores retornam 400 antes da moderação. Por exemplo, um anúncio de esportes por R$ 21.474.836,48 retorna 201 com `status: "rejected"` e `rejectionReason: "price_out_of_range"` quando a moderação o reprova por preço.
 
 A resposta HTTP não expõe `priceCents`: o mapper `toAdResponse` devolve `price` em reais. A conversão de entrada usa a string decimal (`"800.25"` → `80025`), sem `price * 100` em ponto flutuante. Preço com mais de 2 casas continua retornando 400.
 
@@ -164,7 +166,7 @@ O `POST /ads` aguarda a moderação, mas não transforma falha técnica em 500 g
 | `200 approved` | persiste aprovado e retorna 201 |
 | `200 rejected` | persiste reprovado com motivo e retorna 201 |
 | `429`, `5xx`, timeout ou erro de rede | tenta de novo uma vez; respeita `Retry-After` (teto de 1 s) no 429; depois de duas tentativas retorna **503** com `Retry-After: 1` e **não grava** |
-| `400` ou `200` com status desconhecido | **502**, sem retry e sem gravar |
+| `400`, `200` com status desconhecido ou `rejected` sem motivo textual preenchido | **502**, sem retry e sem gravar |
 
 O timeout por tentativa é 3 s e o backoff padrão é 200 ms. Em testes, `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` permitem reduzir esses valores. O pior caso é de aproximadamente 6–7 s; o caminho normal continua dominado pela latência do mock (100–2000 ms).
 

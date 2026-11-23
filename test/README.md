@@ -35,16 +35,16 @@ Um teste com `DataSource` mockado não provaria nada disso. Por isso a suíte so
 | Arquivo | Testes | Cobre |
 |---|---|---|
 | [`ads.test.cjs`](ads.test.cjs) | 1 | Criação aprovada, `Location`, payload enviado à moderação, persistência após reiniciar o Nest e limpeza. |
-| [`rejection.test.cjs`](rejection.test.cjs) | 1 | Reprovação com `rejection_reason` e com `reason`, resposta 201, `Location`, `GET` e linha no banco. |
+| [`rejection.test.cjs`](rejection.test.cjs) | 2 | 502 para reprovação sem motivo válido. Reprovação com `rejection_reason` e com `reason`, resposta 201, `Location`, `GET` e linha no banco. |
 | [`setup.test.cjs`](setup.test.cjs) | 2 | Identidade do banco `anuncios_test` e `GET /health`. |
 | [`validation.test.cjs`](validation.test.cjs) | 1 | 15 payloads inválidos, 400 com `details`, zero chamadas à moderação, zero linhas, limites 10/100 e título trimado. |
-| [`price.test.cjs`](price.test.cjs) | 1 | Preço em reais na API, `priceCents` inteiro no banco, zero à esquerda, recusa de 3 casas e ausência de `priceCents` na resposta. |
+| [`price.test.cjs`](price.test.cjs) | 2 | Reprovação por preço alto, limite de precisão. Preço em reais na API, `priceCents` inteiro no banco, zero à esquerda, recusa de 3 casas e ausência de `priceCents` na resposta. |
 | [`money.test.cjs`](money.test.cjs) | 1 | Conversão pura `toCents`/`fromCents`, sem Nest, banco ou mock. |
 | [`listing.test.cjs`](listing.test.cjs) | 1 | Paginação, filtro por categoria, desempate por `id DESC` com `createdAt` empatado, exclusão de reprovados, categoria sem resultados, página além do fim e queries inválidas. |
 | [`moderation.test.cjs`](moderation.test.cjs) | 1 | Retry 500/429, timeout, 503 com `Retry-After`, 502 para 400/status desconhecido, rejected sem retry e zero linhas em falha. |
 | [`seed.test.cjs`](seed.test.cjs) | 1 | Seed de 57 anúncios, leitura pela API, contagem por categoria, segunda execução recusada e limpeza. |
 
-Total: **10 testes**.
+Total: **12 testes**.
 
 ## Helpers
 

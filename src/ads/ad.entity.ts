@@ -11,7 +11,13 @@ export class Ad {
   @Column('text')
   description!: string;
 
-  @Column('integer', { name: 'priceCents' })
+  @Column('bigint', {
+    name: 'priceCents',
+    transformer: {
+      to: (cents: number) => cents,
+      from: (cents: string) => Number(cents),
+    },
+  })
   priceCents!: number;
 
   @Column('text')

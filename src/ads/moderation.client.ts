@@ -4,7 +4,7 @@ import { CreateAdInput } from './ad.schema';
 
 export type ModerationResult =
   | { status: 'approved' }
-  | { status: 'rejected'; reason: string | null };
+  | { status: 'rejected'; reason: string };
 
 export class ModerationUnavailableError extends Error {
   readonly retryAfterSeconds = 1;
@@ -68,12 +68,12 @@ export class ModerationClient {
       return { status: 'approved' };
     }
     if (response.data?.status === 'rejected') {
-      const reason =
-        typeof response.data.rejection_reason === 'string'
-          ? response.data.rejection_reason
-          : typeof response.data.reason === 'string'
-            ? response.data.reason
-            : null;
+      const reason = [response.data.rejection_reason, response.data.reason].find(
+        (value): value is string => typeof value === 'string' && value.trim().length > 0,
+      );
+      if (reason === undefined) {
+        throw new ModerationProtocolError('A moderação reprovou o anúncio sem informar o motivo.');
+      }
       return { status: 'rejected', reason };
     }
     throw new ModerationProtocolError('A moderação devolveu um status desconhecido.');
