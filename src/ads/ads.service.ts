@@ -5,7 +5,7 @@ import { AdResponse, ListAdsResponse, toAdResponse } from './ad.response';
 import { AdsRepository } from './ads.repository';
 import { CreateAdInput, ListAdsQuery } from './ad.schema';
 import { toCents } from './money';
-import { ModerationClient } from './moderation.client';
+import { ModerationClient } from '../clients/moderation.client';
 
 @Injectable()
 export class AdsService {

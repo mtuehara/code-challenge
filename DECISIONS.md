@@ -90,7 +90,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - O `ad.schema.ts` é o DTO de entrada: o Zod valida em runtime, infere o tipo e produz os detalhes do 400. Não criamos um `.dto.ts` separado com `class-validator`; isso duplicaria a mesma regra em dois formatos. Alternativa considerada: DTO com decorators e `ValidationPipe`; descartada por exigir dependências novas e mais cerimônia.
 - Desde a T-005, `toAdResponse` transforma a entidade em `AdResponse` e converte centavos para reais na resposta HTTP.
 - **Critério para reavaliar:** mais de ~6 endpoints, transações com múltiplos colaboradores, autorização ou políticas que variem por ação. Antes disso, o custo de um caso de uso por arquivo não se paga.
-- A reorganização de pastas em `infra/db`/`services` não foi decidida nesta fatia; a estrutura feature-first atual continua valendo até uma decisão explícita.
+- Na T-011, a conexão e as migrations do TypeORM passaram para [infra/db/database.ts](src/infra/db/database.ts). O adaptador HTTP da moderação passou para [clients/moderation.client.ts](src/clients/moderation.client.ts). Quem altera uma dessas integrações pode localizá-la pelo tipo de dependência. O fluxo de criação e listagem continua em `src/ads`.
 
 ## Tempo e retrospectiva
 
@@ -99,7 +99,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
   - teria implementado a T-007 (falhas do mock) antes da T-005/T-006, para fechar o contrato externo mais cedo e evitar a promessa de “próxima fatia” na documentação;
   - adicionaria idempotência (`Idempotency-Key` + tabela) para o `POST /ads`, cobrindo retry do cliente após timeout;
   - evoluiria a listagem para keyset/cursor e mediria `OFFSET`/`COUNT(*)` com carga, em vez de só validar os índices com `EXPLAIN` forçado no seed;
-  - separaria as migrations de `database.ts` em `src/infra/db/migrations` e o cliente de moderação em `src/infra/moderation`, como discutido, se o projeto crescer;
+  - se o número de migrations crescer, separaria cada uma em um arquivo sob `src/infra/db/migrations`;
   - adicionaria logs estruturados/correlação para diagnosticar falhas do mock e um contrato OpenAPI gerado a partir dos schemas;
   - rodaria a suíte em CI e em uma máquina limpa, com uma verificação da CLI `npm run seed` e do seu código de saída. A suíte já cobre a função `seedDatabase` no banco de teste.
 - O que **não** mudaria: a escolha de `node:test` com integração HTTP/Postgres real, o Zod como contrato de entrada, os centavos no banco, o 201 para reprovado e a separação controller → service → repositório.

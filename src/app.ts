@@ -2,11 +2,11 @@ import 'reflect-metadata';
 import { Controller, Get, Module, OnApplicationShutdown } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DataSource } from 'typeorm';
-import { connectDatabase } from './database';
+import { connectDatabase } from './infra/db/database';
 import { AdsController } from './ads/ads.controller';
 import { AdsRepository } from './ads/ads.repository';
 import { AdsService } from './ads/ads.service';
-import { ModerationClient } from './ads/moderation.client';
+import { ModerationClient } from './clients/moderation.client';
 
 @Controller('health')
 class HealthController {

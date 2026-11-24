@@ -1,5 +1,5 @@
 import { DataSource, MigrationInterface, QueryRunner } from 'typeorm';
-import { Ad } from './ads/ad.entity';
+import { Ad } from '../../ads/ad.entity';
 
 class CreateAdvertisements1795449600000 implements MigrationInterface {
   async up(queryRunner: QueryRunner): Promise<void> {
