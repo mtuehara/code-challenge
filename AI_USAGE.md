@@ -123,6 +123,18 @@ A implementação foi integrada pelo PR #5. O cenário sugerido é acompanhar a 
 
 **Como validei.** Rodei `npm run seed` no `anuncios_test` vazio: 57 linhas, 0 sem imagem/fora de `approved`; a segunda execução recusou com a mensagem de base não vazia. Depois recriei o schema de teste e a suíte voltou a 9/9. Depois da revisão, adicionei `test/seed.test.cjs`, que sobe a API, executa `seedDatabase`, verifica a listagem de 57 anúncios e a contagem de `veiculos`, confirma a recusa da segunda execução e limpa o banco; a suíte passou a 10/10. O banco de desenvolvimento não foi tocado.
 
+## T-012 • Migrations fora do boot
+
+**Prompt** — Organize as migrations como o mercado faz: uma por arquivo, sem rodar no boot da aplicação. Crie um comando explícito de migration, mantenha os testes funcionando com migrations habilitadas no banco de teste e atualize a documentação. Não altere os nomes/timestamps já aplicados.
+
+**O que a IA propôs.** Separar as cinco classes em `src/infra/db/migrations/`, `connectDatabase(url, { migrationsRun })` com default `false`, `scripts/migrate.cjs` + `npm run migration:run` e `runMigrations:true` no helper de teste.
+
+**O que aceitei.** A separação por arquivo, o default `false` e a etapa explícita. Os testes continuam com schema real e migrations reais, mas habilitadas explicitamente no helper.
+
+**O que rejeitei ou corrigi.** Não deixei o app rodando migration no boot; não editei migrations já aplicadas; não coloquei `migrationsRun:true` global; e não removi a verificação de schema dos testes. O README e o T-009 foram corrigidos para não dizer que `npm start`/`npm test` migram o banco de desenvolvimento.
+
+**Como validei.** Recriei o schema do `anuncios_test`, rodei `npm run migration:run` e conferi as cinco linhas em `advertisement_migrations` e a tabela `advertisements`; depois `npm test` passou em 12/12. O banco de desenvolvimento não foi tocado.
+
 ## Revisão de entrega
 
 O candidato pediu ao Codex que comparasse o projeto com o enunciado original e corrigisse os problemas a partir da main atualizada. O Codex reproduziu o erro de preço por HTTP e implementou a ampliação da coluna. O comando `node --test --test-name-pattern="preço alto" test/price.test.cjs` encontrou 500 onde se esperava 201. Depois da migration, `npm test` passou nos 11 testes, incluindo a leitura do preço e do motivo pelo detalhe.
