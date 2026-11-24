@@ -190,6 +190,28 @@ O `POST /ads` aguarda a moderação, mas não transforma falha técnica em 500 g
 
 O timeout por tentativa é 3 s e o backoff padrão é 200 ms. No ambiente local, `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` configuram esses valores. Os testes passam tempos menores diretamente à instância da API. O pior caso é de aproximadamente 6–7 s; o caminho normal continua dominado pela latência do mock (100–2000 ms).
 
+### Testando 400 e 429 no Postman
+
+A collection [`postman/anuncios.postman_collection.json`](postman/anuncios.postman_collection.json) tem chamadas diretas ao mock e à API. Para os erros do mock, use o mock com `ERROR_RATE=0`, senão o erro aleatório de 20% pode devolver 500 antes do 400:
+
+```sh
+docker compose -f backend/api-mock/docker-compose.yml down
+docker compose -f backend/api-mock/docker-compose.yml run -d --service-ports -e ERROR_RATE=0 moderation-api
+```
+
+- **400 no mock:** `Mock fornecido > Recusar payload inválido no mock` envia um body sem `title` e espera `400 validation_error`. `Recusar JSON inválido no mock` espera `400 invalid_json`.
+- **429 no mock:** `Forçar 429 no mock` envia `x-mock-force: rate-limit` e espera `429` com `Retry-After: 1`. Esse header é um gancho de teste do `server.js`, não faz parte do contrato público.
+
+O header **não é repassado** pela nossa API: o Postman chama o Nest, e o `ModerationClient` monta a requisição externa com os campos do contrato, sem headers arbitrários. Para testar o comportamento do **app** com 429 real, suba o mock com o limite zerado e chame `POST /ads` pelo Postman:
+
+```sh
+docker compose -f backend/api-mock/docker-compose.yml down
+docker compose -f backend/api-mock/docker-compose.yml run -d --service-ports \
+  -e ERROR_RATE=0 -e RATE_LIMIT_RPS=0 moderation-api
+```
+
+O app tenta duas vezes, recebe 429 nas duas e responde **503** com `Retry-After: 1`, sem gravar anúncio. Para 500, use `ERROR_RATE=1`; para timeout, use latência acima de 3 s. Um 400 real do mock não ocorre no fluxo normal porque a validação Zod barra o payload antes; se acontecer, é divergência de contrato e o app responde **502**. Esse mapeamento é coberto por [`test/moderation.test.cjs`](test/moderation.test.cjs) com servidor controlado.
+
 ## Seed de demonstração (T-009)
 
 Com o banco de desenvolvimento vazio e as migrations aplicadas. Atenção: `npm test` usa o banco de **teste** (`anuncios_test`, 5433) e **não** migra o banco de desenvolvimento (`anuncios`, 5432). Prepare assim:
