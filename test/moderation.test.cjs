@@ -51,18 +51,13 @@ function startScenarioServer() {
 }
 
 test('POST /ads trata retry, 429, 5xx, timeout e 502 sem gravar em falha', async () => {
-  const previousTimeout = process.env.MODERATION_TIMEOUT_MS;
-  const previousBackoff = process.env.MODERATION_RETRY_BACKOFF_MS;
-  process.env.MODERATION_TIMEOUT_MS = '80';
-  process.env.MODERATION_RETRY_BACKOFF_MS = '10';
-
   const db = await connectTestDatabase();
   const moderation = await startScenarioServer();
   const createdAdIds = [];
   let api;
 
   try {
-    api = await startTestApi(moderation.url);
+    api = await startTestApi(moderation.url, { timeoutMs: 80, backoffMs: 10 });
     const attempts = title => moderation.requests.filter(request => request.input.title === title).length;
     const create = async title => {
       const result = await postAd(api.url, { ...baseInput, title });
@@ -117,9 +112,5 @@ test('POST /ads trata retry, 429, 5xx, timeout e 502 sem gravar em falha', async
     await moderation.close();
     await deleteAds(db, createdAdIds);
     await db.end();
-    if (previousTimeout === undefined) delete process.env.MODERATION_TIMEOUT_MS;
-    else process.env.MODERATION_TIMEOUT_MS = previousTimeout;
-    if (previousBackoff === undefined) delete process.env.MODERATION_RETRY_BACKOFF_MS;
-    else process.env.MODERATION_RETRY_BACKOFF_MS = previousBackoff;
   }
 });

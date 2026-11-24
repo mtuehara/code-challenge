@@ -21,8 +21,6 @@ class HealthController {
   providers: [
     AdsService,
     AdsRepository,
-    ModerationClient,
-    { provide: DataSource, useFactory: connectDatabase },
   ],
 })
 class AppModule implements OnApplicationShutdown {
@@ -33,6 +31,22 @@ class AppModule implements OnApplicationShutdown {
   }
 }
 
-export function createApp() {
-  return NestFactory.create(AppModule, { logger: false, abortOnError: false });
+interface AppOptions {
+  databaseUrl?: string;
+  moderationUrl?: string;
+  timeoutMs?: number;
+  backoffMs?: number;
+}
+
+export function createApp(options: AppOptions = {}) {
+  return NestFactory.create({
+    module: AppModule,
+    providers: [
+      { provide: DataSource, useFactory: () => connectDatabase(options.databaseUrl) },
+      {
+        provide: ModerationClient,
+        useFactory: () => new ModerationClient(options.moderationUrl, options.timeoutMs, options.backoffMs),
+      },
+    ],
+  }, { logger: false, abortOnError: false });
 }

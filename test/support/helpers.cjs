@@ -55,11 +55,8 @@ async function startModerationServer(handle) {
   };
 }
 
-async function startTestApi(moderationUrl) {
-  process.env.DATABASE_URL = testDatabaseUrl;
-  process.env.MODERATION_URL = moderationUrl;
-
-  const app = await createApp();
+async function startTestApi(moderationUrl, { timeoutMs = 3000, backoffMs = 200 } = {}) {
+  const app = await createApp({ databaseUrl: testDatabaseUrl, moderationUrl, timeoutMs, backoffMs });
   await app.listen(0, '127.0.0.1');
 
   let closed = false;

@@ -109,3 +109,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 A revisão de entrega amplia a coluna de centavos para bigint por migration. Isso permite persistir a reprovação por preço acima do limite anterior do PostgreSQL. Um teto no antigo limite de 32 bits impediria a consulta dessas reprovações. O contrato JSON usa number, por isso a validação limita os centavos à precisão inteira segura. O rollback para integer requer que os valores caibam no tipo anterior.
 
 A API trata uma reprovação sem motivo preenchido como falha do contrato externo (502). Inventar um motivo local atribuiria à moderação uma decisão que ela não informou. O cliente procura um texto preenchido primeiro em `rejection_reason` e depois em `reason`.
+
+## T-010 • Configuração local
+
+A [T-010](specs/anuncios/t010.md) permite guardar as URLs e a porta entre sessões do terminal. A API e o seed usam o carregamento opcional de `.env` do Node 24. Isso permite usar as variáveis exportadas pelo terminal e dispensa uma dependência adicional como dotenv. O arquivo `.env.example` reúne as cinco configurações locais. A suíte passa banco, URL e tempos da moderação a cada instância do Nest para manter os cenários isolados.

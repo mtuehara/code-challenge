@@ -106,10 +106,12 @@ class WidenPriceCents1795795200000 implements MigrationInterface {
   }
 }
 
-export async function connectDatabase(): Promise<DataSource> {
+export async function connectDatabase(
+  url = process.env.DATABASE_URL ?? 'postgres://anuncios:local_dev@127.0.0.1:5432/anuncios',
+): Promise<DataSource> {
   const database = new DataSource({
     type: 'postgres',
-    url: process.env.DATABASE_URL ?? 'postgres://anuncios:local_dev@127.0.0.1:5432/anuncios',
+    url,
     entities: [Ad],
     migrations: [
       CreateAdvertisements1795449600000,

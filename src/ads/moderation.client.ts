@@ -1,5 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import { CreateAdInput } from './ad.schema';
 
 export type ModerationResult =
@@ -18,14 +17,16 @@ function sleep(milliseconds: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
-@Injectable()
 export class ModerationClient {
-  private readonly http = axios.create({
-    baseURL: process.env.MODERATION_URL ?? 'http://localhost:8787',
-    timeout: Number(process.env.MODERATION_TIMEOUT_MS ?? 3000),
-  });
+  private readonly http: AxiosInstance;
 
-  private readonly backoffMs = Number(process.env.MODERATION_RETRY_BACKOFF_MS ?? 200);
+  constructor(
+    baseURL = process.env.MODERATION_URL ?? 'http://localhost:8787',
+    timeoutMs = Number(process.env.MODERATION_TIMEOUT_MS ?? 3000),
+    private readonly backoffMs = Number(process.env.MODERATION_RETRY_BACKOFF_MS ?? 200),
+  ) {
+    this.http = axios.create({ baseURL, timeout: timeoutMs });
+  }
 
   async check(input: CreateAdInput): Promise<ModerationResult> {
     const { title, description, price, category } = input;
