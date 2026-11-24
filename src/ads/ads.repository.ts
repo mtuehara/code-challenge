@@ -18,16 +18,18 @@ export class AdsRepository {
     return this.database.getRepository(Ad).findOneBy({ id });
   }
 
-  findApprovedPage({
+  findPage({
+    status,
     category,
     skip,
     take,
   }: {
+    status: 'approved' | 'rejected';
     category?: string;
     skip: number;
     take: number;
   }): Promise<[Ad[], number]> {
-    const where: FindOptionsWhere<Ad> = { status: 'approved' };
+    const where: FindOptionsWhere<Ad> = { status };
     if (category) where.category = category;
 
     return this.database.getRepository(Ad).findAndCount({

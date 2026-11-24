@@ -54,11 +54,11 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 
 ## T-006 • Listagem paginada e filtro
 
-- A persistência saiu do `AdsService` para o `AdsRepository`: `create`, `save`, `findById` e `findApprovedPage`. O serviço ficou com moderação, conversão de centavos, 404, mapper e montagem da resposta. Alternativa descartada: continuar usando `DataSource.getRepository` direto no serviço; funcionava, mas espalharia `where`/`order`/`skip`/`take` na regra de aplicação assim que novas buscas aparecessem.
+- A persistência saiu do `AdsService` para o `AdsRepository`: `create`, `save`, `findById` e a consulta paginada (`findPage` desde a T-013). O serviço ficou com moderação, conversão de centavos, 404, mapper e montagem da resposta. Alternativa descartada: continuar usando `DataSource.getRepository` direto no serviço; funcionava, mas espalharia `where`/`order`/`skip`/`take` na regra de aplicação assim que novas buscas aparecessem.
 - Paginação `page`/`pageSize`, 1-based, padrão 1/20, máximo 100; resposta `{data, page, pageSize, total, totalPages}`. Alternativas descartadas: `limit`/`offset` (menos legível) e cursor/keyset (overkill para o volume do desafio, que fica registrado como evolução).
-- Ordem `createdAt DESC, id DESC` para desempate determinístico. A consulta de aprovados fica no repositório (`findApprovedPage`); o serviço decide paginação, montagem da resposta e mapper. Os reprovados continuam no detalhe. Alternativa descartada: incluir reprovados no catálogo público sem autenticação, o que misturaria visões de comprador e vendedor.
+- Ordem `createdAt DESC, id DESC` para desempate determinístico. O catálogo padrão é `approved`; a T-013 adicionou `status=approved|rejected` explícito. Alternativa descartada: incluir reprovados no catálogo público por padrão sem autenticação, o que misturaria visões de comprador e vendedor.
 - Query validada pelo mesmo `ZodValidationPipe`: `page`/`pageSize` inválidos e categoria fora do contrato retornam 400 antes do banco. `totalPages` é `Math.ceil(total / pageSize)`; página além do fim devolve `data: []`.
-- Dois índices parciais `WHERE status = 'approved'`: `(status, "createdAt" DESC, id DESC)` e `(status, category, "createdAt" DESC, id DESC)`. Com 57 linhas o planner pode preferir `Seq Scan`; os índices são para volume maior e foram validados com plano forçado (Index Scan sem `Sort`).
+- Dois índices parciais `WHERE status = 'approved'` foram criados na T-006. A T-013 os substituiu por índices não parciais com `status` na primeira coluna, para servir às duas visões; com 57 linhas o planner pode preferir `Seq Scan` e os índices são para volume maior.
 - **Limite da evidência.** A suíte cobre paginação/filtro/ordem com fixtures SQL e não mede carga; `OFFSET` profundo e `COUNT(*)` continuam sendo o custo a evoluir para keyset. A migration de índices não tem teste de plano (`EXPLAIN`) automatizado.
 
 ## T-007 • Falhas do serviço de moderação
@@ -84,6 +84,14 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - O helper de teste passa `runMigrations: true` para o `createApp`, porque o banco `anuncios_test` é efêmero e a suíte precisa do schema. É uma exceção explícita de teste, não o comportamento de produção.
 - Alternativa descartada: manter `migrationsRun:true` para conveniência local. É mais simples, mas acopla schema ao boot, atrasa o start e cria corrida em múltiplas réplicas. Outra alternativa: rodar migrations em um container/init job; é o próximo passo natural em produção, mas adicionaria infraestrutura ao desafio.
 - **Evidência.** `npm run migration:run` em schema vazio aplicou as cinco migrations; `advertisement_migrations` tinha as cinco linhas e `advertisements` existia. Depois, `npm test` passou em 12/12. A suíte não testa o caminho “app sem schema” explicitamente; o default `false` está no código.
+
+## T-013 • Filtro por status
+
+- `GET /ads` passou a aceitar `status=approved|rejected`, com default `approved`. O catálogo público continua sendo aprovado; consultar reprovados exige `status=rejected`. Alternativas descartadas: `status=all` (mistura as duas visões e aumenta a chance de exposição acidental) e incluir reprovados por padrão (quebraria o contrato e a decisão de catálogo público da T-006).
+- O repositório passou de `findApprovedPage` para `findPage({ status, category, skip, take })`; o serviço só repassa o status escolhido. A query Zod valida o enum antes do banco; `status` vazio ou desconhecido retorna 400.
+- A migration `ReplaceListingIndexes1795881600000` substitui os índices parciais de `approved` por índices não parciais `(status, "createdAt" DESC, id DESC)` e `(status, category, ...)`. O `status` é a primeira coluna porque toda listagem filtra por ele; o `down` recria os índices parciais antigos.
+- **Risco de produto/segurança:** sem autenticação, `status=rejected` expõe anúncios reprovados e motivos. Para o desafio é uma visão de moderação/demonstração; em produção, deveria exigir autorização (ou ser um endpoint administrativo separado). Está documentado no README.
+- **Evidência.** `test/listing.test.cjs` passou a cobrir `status=rejected` (1 item com motivo), `status=approved` explícito (4 itens), status inválido/vazio (400) e manteve default/paginação/filtro. A suíte completa passou em 12/12.
 
 ## Testes • `node:test` e integração
 

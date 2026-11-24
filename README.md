@@ -116,7 +116,7 @@ Quando a moderação responde 200 com `{"status":"rejected","reason":"price_out_
 }
 ```
 
-O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta `reason`. O cliente aceita as duas chaves e expõe o valor como `rejectionReason`. A migration `AddRejectedStatus1795536000000` amplia o `CHECK` da coluna `status` para aceitar `approved` e `rejected`; a migration inicial não foi editada. A reprovação não aparece na listagem (T-006): a decisão é excluí-la do catálogo público e mantê-la acessível pelo detalhe.
+O mock real devolve o motivo em `rejection_reason`; o `API.md` do mock documenta `reason`. O cliente aceita as duas chaves e expõe o valor como `rejectionReason`. A migration `AddRejectedStatus1795536000000` amplia o `CHECK` da coluna `status` para aceitar `approved` e `rejected`; a migration inicial não foi editada. A listagem padrão continua sendo o catálogo público de aprovados; a partir da T-013, `GET /ads?status=rejected` permite consultar os reprovados com o motivo.
 
 ## Preço em centavos (T-005)
 
@@ -128,15 +128,16 @@ A resposta HTTP não expõe `priceCents`: o mapper `toAdResponse` devolve `price
 
 ## Listagem (T-006)
 
-`GET /ads` lista somente anúncios aprovados, com paginação e filtro opcional por categoria:
+`GET /ads` lista anúncios com paginação e filtros opcionais por categoria e status:
 
 | Parâmetro | Padrão | Regra |
 |---|---|---|
 | `page` | `1` | inteiro ≥ 1; 1-based |
 | `pageSize` | `20` | inteiro entre 1 e 100 |
 | `category` | — | opcional; uma das seis categorias do mock |
+| `status` | `approved` | `approved` ou `rejected`; sem `all` |
 
-A ordem é `createdAt DESC, id DESC`, para que a paginação seja determinística. Parâmetro ausente usa o padrão; valor vazio (`?page=`, `?category=`) é inválido e retorna 400. A resposta tem `data`, `page`, `pageSize`, `total` e `totalPages`; sem resultados, `total` e `totalPages` são 0:
+A ordem é `createdAt DESC, id DESC`, para que a paginação seja determinística. Parâmetro ausente usa o padrão; valor vazio (`?page=`, `?category=`, `?status=`) é inválido e retorna 400. A resposta tem `data`, `page`, `pageSize`, `total` e `totalPages`; sem resultados, `total` e `totalPages` são 0:
 
 Exemplo para `GET /ads?page=1&pageSize=1&category=esportes` com os dados do teste de listagem.
 
@@ -162,9 +163,19 @@ Exemplo para `GET /ads?page=1&pageSize=1&category=esportes` com os dados do test
 }
 ```
 
-Query inválida retorna 400 com `details`. Uma página além do fim retorna 200 com `data: []`. Os reprovados ficam fora da listagem, mas continuam acessíveis por `GET /ads/{id}`. O acesso ao banco fica em `AdsRepository`; o serviço coordena paginação, mapper e resposta.
+Query inválida retorna 400 com `details`. Uma página além do fim retorna 200 com `data: []`. O acesso ao banco fica em `AdsRepository`; o serviço coordena paginação, mapper e resposta.
 
-A migration `AddListingIndexes1795708800000` cria dois índices parciais para `status = 'approved'`: um para a ordem global e outro para o filtro por categoria. Com 57 anúncios o planner pode preferir `Seq Scan`; os índices existem para volume maior e foram validados com o plano forçado (Index Scan sem `Sort`), não como uma promessa de ganho no seed.
+### Filtro por status (T-013)
+
+Sem `status`, a listagem é o catálogo público de `approved`. Para consultar reprovados:
+
+```http
+GET /ads?status=rejected&page=1&pageSize=20
+```
+
+O filtro aceita `approved` ou `rejected`; qualquer outro valor retorna 400. A resposta de reprovados inclui `rejectionReason`. **Sem autenticação**, essa é uma visão de moderação/demonstração: em produção, listar reprovados e motivos deveria exigir autorização, porque o motivo pode expor informação operacional. O detalhe `GET /ads/{id}` continua acessível como antes.
+
+A migration `AddListingIndexes1795708800000` criou índices parciais para `approved`; a T-013 os substitui por índices não parciais com `status` como primeira coluna (`ReplaceListingIndexes1795881600000`), para servir tanto `approved` quanto `rejected`. Com 57 anúncios o planner pode preferir `Seq Scan`; os índices existem para volume maior e foram validados com o plano forçado, não como uma promessa de ganho no seed.
 
 ## Falhas do mock (T-007)
 

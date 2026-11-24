@@ -142,6 +142,22 @@ test('GET /ads lista aprovados com paginação, filtro e ordem determinística',
     assert.equal(emptyCategory.body.total, 0);
     assert.equal(emptyCategory.body.totalPages, 0);
 
+    // Status explícito: o default continua approved, mas rejected é consultável.
+    const rejected = await getJson(api.url, '/ads?status=rejected');
+    assert.equal(rejected.response.status, 200);
+    assert.deepEqual(rejected.body.data.map(ad => ad.id), [fixtures[3].id]);
+    assert.equal(rejected.body.data[0].rejectionReason, 'prohibited_item');
+    assert.equal(rejected.body.total, 1);
+    assert.equal(rejected.body.totalPages, 1);
+
+    const approvedExplicit = await getJson(api.url, '/ads?status=approved');
+    assert.equal(approvedExplicit.response.status, 200);
+    assert.deepEqual(
+      approvedExplicit.body.data.map(ad => ad.id),
+      [fixtures[2].id, fixtures[4].id, fixtures[1].id, fixtures[0].id],
+    );
+    assert.equal(approvedExplicit.body.total, 4);
+
     // Padrões de paginação e limite máximo aceito.
     const defaults = await getJson(api.url, '/ads');
     assert.equal(defaults.response.status, 200);
@@ -173,6 +189,8 @@ test('GET /ads lista aprovados com paginação, filtro e ordem determinística',
       ['pageSize=', 'pageSize'],
       ['category=inexistente', 'category'],
       ['category=', 'category'],
+      ['status=inexistente', 'status'],
+      ['status=', 'status'],
     ]) {
       const invalid = await getJson(api.url, `/ads?${query}`);
       assert.equal(invalid.response.status, 400, query);
