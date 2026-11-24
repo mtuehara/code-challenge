@@ -4,6 +4,33 @@ API REST para criar e consultar anúncios de marketplace. O serviço usa NestJS,
 
 [Enunciado de backend](backend/README.md) · [Contrato do mock](backend/api-mock/docs-candidato/API.md) · [Decisões técnicas](DECISIONS.md) · [Uso de IA](AI_USAGE.md) · [Testes](test/README.md)
 
+## Arquitetura
+
+Um único deployable NestJS, com o mock de moderação tratado como serviço externo:
+
+```mermaid
+flowchart LR
+  client["Cliente / Postman"] -->|"HTTP JSON"| controller["AdsController<br/>HTTP + validação Zod"]
+  subgraph app["API NestJS"]
+    controller --> service["AdsService<br/>orquestra moderação e persistência"]
+    service --> repo["AdsRepository<br/>consultas TypeORM"]
+    service --> moderation["ModerationClient<br/>HTTP"]
+  end
+  repo --> db[("PostgreSQL<br/>advertisements")]
+  moderation -->|"HTTP"| mock[("Mock de moderação<br/>serviço externo")]
+  migrate["npm run migration:run"] --> db
+  seed["npm run seed"] -.-> db
+  tests["npm test<br/>node:test"] -.->|"HTTP real"| controller
+  tests -.->|"mock controlado"| moderation
+```
+
+- **Controller + Zod:** borda HTTP, contrato de entrada e erros 400.
+- **Service:** orquestra moderação, conversão de centavos, regras e resposta.
+- **Repository:** única camada que conhece as consultas e o TypeORM.
+- **ModerationClient:** única camada que conhece o contrato do mock.
+- **Migrations/seed:** etapas explícitas de schema e dados, separadas do boot.
+- **Testes:** exercitam a borda HTTP contra Postgres real e um mock controlado.
+
 ## Executar a API
 
 Na raiz do projeto, com Node 24 e Docker Compose, execute:
