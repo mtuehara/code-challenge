@@ -5,6 +5,7 @@ import { AddRejectedStatus1795536000000 } from './migrations/1795536000000-add-r
 import { AddPriceCents1795622400000 } from './migrations/1795622400000-add-price-cents';
 import { AddListingIndexes1795708800000 } from './migrations/1795708800000-add-listing-indexes';
 import { WidenPriceCents1795795200000 } from './migrations/1795795200000-widen-price-cents';
+import { ReplaceListingIndexes1795881600000 } from './migrations/1795881600000-replace-listing-indexes';
 
 export interface DatabaseOptions {
   migrationsRun?: boolean;
@@ -24,6 +25,7 @@ export async function connectDatabase(
       AddPriceCents1795622400000,
       AddListingIndexes1795708800000,
       WidenPriceCents1795795200000,
+      ReplaceListingIndexes1795881600000,
     ],
     migrationsTableName: 'advertisement_migrations',
     migrationsRun,

@@ -10,6 +10,8 @@ export const AD_CATEGORIES = [
   'colecionaveis',
 ] as const;
 
+export const AD_STATUSES = ['approved', 'rejected'] as const;
+
 const priceSchema = z
   .number({ message: 'O preço deve ser um número.' })
   .finite({ message: 'O preço deve ser um número finito.' })
@@ -60,6 +62,7 @@ export const listAdsQuerySchema = z.object({
   page: pageSchema,
   pageSize: pageSizeSchema,
   category: z.enum(AD_CATEGORIES, { message: 'Categoria inválida.' }).optional(),
+  status: z.enum(AD_STATUSES, { message: 'Status inválido.' }).default('approved'),
 });
 
 export type ListAdsQuery = z.infer<typeof listAdsQuerySchema>;

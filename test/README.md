@@ -42,7 +42,7 @@ As migrations ficam em `src/infra/db/migrations` e o app sobe com `migrationsRun
 | [`validation.test.cjs`](validation.test.cjs) | 1 | 15 payloads inválidos, 400 com `details`, zero chamadas à moderação, zero linhas, limites 10/100 e título trimado. |
 | [`price.test.cjs`](price.test.cjs) | 2 | Reprovação por preço alto, limite de precisão. Preço em reais na API, `priceCents` inteiro no banco, conversão de 0,1 real em 10 centavos, recusa de 3 casas e ausência de `priceCents` na resposta. |
 | [`money.test.cjs`](money.test.cjs) | 1 | Conversão pura `toCents`/`fromCents`, sem Nest, banco ou mock. |
-| [`listing.test.cjs`](listing.test.cjs) | 1 | Paginação, filtro por categoria, desempate por `id DESC` com `createdAt` empatado, exclusão de reprovados, categoria sem resultados, página além do fim e queries inválidas. |
+| [`listing.test.cjs`](listing.test.cjs) | 1 | Paginação, filtro por categoria e status, default `approved`, `status=rejected` com motivo, desempate por `id DESC` com `createdAt` empatado, categoria sem resultados, página além do fim e queries inválidas. |
 | [`moderation.test.cjs`](moderation.test.cjs) | 1 | Retry 500/429, timeout, 503 com `Retry-After`, 502 para 400/status desconhecido, rejected sem retry e zero linhas em falha. |
 | [`seed.test.cjs`](seed.test.cjs) | 1 | Seed de 57 anúncios, leitura pela API, contagem por categoria, segunda execução recusada e limpeza. |
 

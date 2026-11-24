@@ -39,7 +39,8 @@ export class AdsService {
 
   async list(query: ListAdsQuery): Promise<ListAdsResponse> {
     const skip = (query.page - 1) * query.pageSize;
-    const [ads, total] = await this.ads.findApprovedPage({
+    const [ads, total] = await this.ads.findPage({
+      status: query.status,
       category: query.category,
       skip,
       take: query.pageSize,

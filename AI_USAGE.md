@@ -135,6 +135,18 @@ A implementação foi integrada pelo PR #5. O cenário sugerido é acompanhar a 
 
 **Como validei.** Recriei o schema do `anuncios_test`, rodei `npm run migration:run` e conferi as cinco linhas em `advertisement_migrations` e a tabela `advertisements`; depois `npm test` passou em 12/12. O banco de desenvolvimento não foi tocado.
 
+## T-013 • Filtro por status
+
+**Prompt** — Adicione filtro por status à listagem para consultar os reprovados, mantendo `approved` como default e sem `all`. O filtro deve ser validado no Zod, o repositório deve receber o status, a listagem deve incluir o motivo dos reprovados e a migration deve trocar os índices parciais por índices que sirvam aos dois status. Documente o risco de expor reprovados sem autenticação.
+
+**O que a IA propôs.** `status: approved|rejected` no schema, `findPage({status, category, skip, take})`, `status=rejected` no README e a migration `ReplaceListingIndexes1795881600000`.
+
+**O que aceitei.** O default `approved` (contrato preservado), a ausência de `all`, o índice não parcial com `status` na primeira coluna e o aviso de que a visão de reprovados é de moderação/demonstração sem auth.
+
+**O que rejeitei ou corrigi.** Não deixei reprovados no default; não criei um endpoint administrativo separado (fora do escopo); não editei a migration de índices já aplicada, criei outra; e não escondi o risco de segurança na documentação. O primeiro `node --test test/listing.test.cjs` falhou porque `status=rejected` devolvia os quatro aprovados; era o comportamento antigo.
+
+**Como validei.** O teste de listagem cobre `status=rejected` (1 item com motivo), `status=approved` explícito (4 itens), status inválido/vazio (400) e mantém default, paginação e categoria. `npm test` passou em 12/12; o banco de teste terminou limpo. A migration de índices foi aplicada no `anuncios_test` e o README/DECISIONS registram a troca dos índices parciais.
+
 ## Revisão de entrega
 
 O candidato pediu ao Codex que comparasse o projeto com o enunciado original e corrigisse os problemas a partir da main atualizada. O Codex reproduziu o erro de preço por HTTP e implementou a ampliação da coluna. O comando `node --test --test-name-pattern="preço alto" test/price.test.cjs` encontrou 500 onde se esperava 201. Depois da migration, `npm test` passou nos 11 testes, incluindo a leitura do preço e do motivo pelo detalhe.
