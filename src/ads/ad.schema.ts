@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isPriceWithTwoDecimals } from './money';
+import { isPriceWithTwoDecimals } from '../utils/money';
 
 export const AD_CATEGORIES = [
   'eletronicos',
