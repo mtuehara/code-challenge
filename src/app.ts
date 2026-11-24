@@ -36,13 +36,19 @@ interface AppOptions {
   moderationUrl?: string;
   timeoutMs?: number;
   backoffMs?: number;
+  runMigrations?: boolean;
 }
 
 export function createApp(options: AppOptions = {}) {
   return NestFactory.create({
     module: AppModule,
     providers: [
-      { provide: DataSource, useFactory: () => connectDatabase(options.databaseUrl) },
+      {
+        provide: DataSource,
+        useFactory: () => connectDatabase(options.databaseUrl, {
+          migrationsRun: options.runMigrations,
+        }),
+      },
       {
         provide: ModerationClient,
         useFactory: () => new ModerationClient(options.moderationUrl, options.timeoutMs, options.backoffMs),

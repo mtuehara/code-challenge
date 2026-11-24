@@ -20,7 +20,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 
 - O candidato aprovou o critério de criar, moderar, persistir e consultar após reiniciar o Nest. O controller cuida de HTTP e Location. O serviço coordena a moderação e a gravação. Usamos diretamente o repository do TypeORM.
 - Axios foi solicitado pelo candidato para centralizar baseURL e timeout no cliente da moderação. A alternativa discutida foi fetch. O cliente envia somente os quatro campos previstos no contrato externo e exige HTTP 200 com status approved.
-- A migration cria advertisements e roda durante a inicialização. synchronize fica desabilitado. Os testes rodam sequencialmente para evitar duas inicializações concorrentes aplicando a migration na mesma base. Múltiplas réplicas exigiriam executar migrations em uma etapa separada.
+- Na T-002, a migration criava advertisements e rodava durante a inicialização. O `synchronize` ficou desabilitado. Desde a T-012, a execução é explícita (`npm run migration:run`) e o app sobe com `migrationsRun:false`; a T-002 registra o estado histórico. Os testes rodam sequencialmente e habilitam migrations apenas no helper do banco de teste.
 - Para esta fatia, escolhemos numeric no Postgres e mantemos price em reais na API. A alternativa discutida anteriormente foi centavos inteiros. Numeric preserva o decimal armazenado, enquanto a interface JSON segue a precisão de number do JavaScript. A T-003 definiu a precisão aceita na entrada.
 - Na revisão da T-002, o candidato escolheu centavos inteiros para armazenamento e cálculos. O enunciado exige preço positivo, e o contrato do mock especifica apenas `number`. O campo `price` continua em reais na API e no mock. A T-005 implementou a conversão pela representação decimal e o armazenamento em centavos.
 - O POST aguarda a aprovação antes de inserir. A conexão com o banco é encerrada junto com a aplicação. O teste fecha e reabre o Nest para conferir que o GET depende da persistência.
@@ -77,6 +77,14 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
 - O seed fornecido não tem `images`; usamos `https://picsum.photos/seed/anuncio-{id}/640/480` como placeholder estável. As cinco categorias presentes (não há `colecionaveis`) e os preços conferem com as faixas do mock.
 - **Evidência.** `test/seed.test.cjs` sobe a API, limpa a tabela, chama `seedDatabase`, verifica 57 linhas na API, contagem de `veiculos` e imagens, e confirma que a segunda execução recusa sem alterar os dados. O teste roda no `anuncios_test`, limpa o que criou e não depende do banco de desenvolvimento. Limite: ele exercita a função exportada, não o processo `npm run seed` nem o exit code da CLI; a execução manual da CLI foi feita antes do teste automatizado.
 
+## T-012 • Migrations fora do boot da aplicação
+
+- As cinco migrations saíram de `database.ts` e ficaram em `src/infra/db/migrations/`, uma por arquivo, com os mesmos nomes/timestamps já aplicados. `database.ts` passou a importar as classes e a expor `connectDatabase(url, { migrationsRun })`, com default `false`.
+- O app não roda migrations no startup. A execução virou uma etapa explícita: `npm run migration:run` (`scripts/migrate.cjs`) conecta, aplica as pendentes e encerra. Isso segue o padrão de deploy: migration antes do rollout, não no boot de cada réplica; evita corrida entre instâncias e deixa a falha de migration fora do processo HTTP.
+- O helper de teste passa `runMigrations: true` para o `createApp`, porque o banco `anuncios_test` é efêmero e a suíte precisa do schema. É uma exceção explícita de teste, não o comportamento de produção.
+- Alternativa descartada: manter `migrationsRun:true` para conveniência local. É mais simples, mas acopla schema ao boot, atrasa o start e cria corrida em múltiplas réplicas. Outra alternativa: rodar migrations em um container/init job; é o próximo passo natural em produção, mas adicionaria infraestrutura ao desafio.
+- **Evidência.** `npm run migration:run` em schema vazio aplicou as cinco migrations; `advertisement_migrations` tinha as cinco linhas e `advertisements` existia. Depois, `npm test` passou em 12/12. A suíte não testa o caminho “app sem schema” explicitamente; o default `false` está no código.
+
 ## Testes • `node:test` e integração
 
 - Mantivemos o runner nativo do Node (`node:test`) e testes de integração pela borda HTTP: Nest real, Postgres `anuncios_test`, migrations reais e um servidor HTTP controlado no lugar do mock. O desenho está em [`test/README.md`](test/README.md) e os helpers em [`test/support/helpers.cjs`](test/support/helpers.cjs).
@@ -99,7 +107,7 @@ Para desenvolvimento, npm run start:dev usa Nodemon observando src e tsconfig.js
   - teria implementado a T-007 (falhas do mock) antes da T-005/T-006, para fechar o contrato externo mais cedo e evitar a promessa de “próxima fatia” na documentação;
   - adicionaria idempotência (`Idempotency-Key` + tabela) para o `POST /ads`, cobrindo retry do cliente após timeout;
   - evoluiria a listagem para keyset/cursor e mediria `OFFSET`/`COUNT(*)` com carga, em vez de só validar os índices com `EXPLAIN` forçado no seed;
-  - se o número de migrations crescer, separaria cada uma em um arquivo sob `src/infra/db/migrations`;
+  - levaria a etapa de migration para um container/init job e um pipeline de CI/CD; as migrations já foram separadas em `src/infra/db/migrations` na T-012;
   - adicionaria logs estruturados/correlação para diagnosticar falhas do mock e um contrato OpenAPI gerado a partir dos schemas;
   - rodaria a suíte em CI e em uma máquina limpa, com uma verificação da CLI `npm run seed` e do seu código de saída. A suíte já cobre a função `seedDatabase` no banco de teste.
 - O que **não** mudaria: a escolha de `node:test` com integração HTTP/Postgres real, o Zod como contrato de entrada, os centavos no banco, o 201 para reprovado e a separação controller → service → repositório.

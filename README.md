@@ -12,10 +12,13 @@ Na raiz do projeto, com Node 24 e Docker Compose, execute:
 npm ci
 docker compose up -d --wait postgres
 docker compose -f backend/api-mock/docker-compose.yml up -d --wait
+npm run migration:run
 npm start
 ```
 
-Mantenha o terminal aberto. O Nest aplica as migrations ao iniciar. [GET /health](http://localhost:3000/health) retorna HTTP 200 com `{"status":"ok"}`. Para desenvolver com reinício automático, use `npm run start:dev` no lugar de `npm start`. Se a porta 3000 estiver ocupada, defina `$env:PORT = '3001'` no PowerShell e use essa porta nas chamadas abaixo. Se a política do PowerShell bloquear `npm.ps1`, use `npm.cmd`.
+Mantenha o terminal aberto. **O Nest não aplica migrations ao iniciar**: rode `npm run migration:run` antes de subir a API ou depois de atualizar o código. [GET /health](http://localhost:3000/health) retorna HTTP 200 com `{"status":"ok"}`. Para desenvolver com reinício automático, use `npm run start:dev` no lugar de `npm start`. Se a porta 3000 estiver ocupada, defina `$env:PORT = '3001'` no PowerShell e use essa porta nas chamadas abaixo. Se a política do PowerShell bloquear `npm.ps1`, use `npm.cmd`.
+
+As migrations ficam em [`src/infra/db/migrations`](src/infra/db/migrations) e são aplicadas em uma etapa explícita, como em um deploy real. Isso evita que duas réplicas subindo ao mesmo tempo disputem a migration na inicialização. Os testes continuam aplicando migrations no banco de teste, porque o helper passa `runMigrations: true` para o `createApp`.
 
 Para personalizar o ambiente, copie [`.env.example`](.env.example) para `.env` na raiz (PowerShell: `Copy-Item .env.example .env`). O arquivo local está no `.gitignore`. A API e o seed carregam o arquivo opcional ao iniciar, usando o suporte nativo do Node 24. Variáveis já exportadas no terminal têm prioridade. Reinicie a aplicação após editar o arquivo. O exemplo contém a porta da API, as URLs locais e os tempos da moderação.
 
@@ -182,11 +185,11 @@ Com o banco de desenvolvimento vazio e as migrations aplicadas. Atenção: `npm 
 
 ```sh
 docker compose up -d --wait postgres
-npm start          # aplica as migrations; encerre com Ctrl+C
+npm run migration:run
 npm run seed
 ```
 
-O seed não aplica migrations sozinho.
+O seed não aplica migrations sozinho; a API também não.
 
 O script lê [`backend/api-mock/seed/ads.json`](backend/api-mock/seed/ads.json) — o arquivo fornecido, que não é alterado — e insere os **57 anúncios** como `approved`, com UUID, `priceCents`, `createdAt` original e uma imagem placeholder estável no Picsum (`https://picsum.photos/seed/anuncio-{id}/640/480`). O seed fornecido não tem imagens; o placeholder é só para a demonstração da listagem.
 

@@ -30,6 +30,8 @@ Os riscos principais do desafio estão na integração:
 
 Um teste com `DataSource` mockado não provaria nada disso. Por isso a suíte sobe o Nest de verdade e usa o banco `anuncios_test` na porta 5433. O mock externo é substituído por um servidor HTTP controlado para que o teste seja determinístico (o mock real tem 20% de erro e limite de 5 req/s).
 
+As migrations ficam em `src/infra/db/migrations` e o app sobe com `migrationsRun:false`; o helper de teste passa `runMigrations:true` porque o banco de teste é efêmero. Em produção, a migration é uma etapa explícita (`npm run migration:run`).
+
 ## Arquivos
 
 | Arquivo | Testes | Cobre |
@@ -54,7 +56,7 @@ Total: **12 testes**.
 |---|---|
 | `connectTestDatabase()` | Abre um `pg.Client` no `anuncios_test` e confere o nome do banco. |
 | `startModerationServer(handle)` | Sobe um `http.Server` em porta livre; grava `{method, path, input}` de cada requisição e responde o que o teste mandar. |
-| `startTestApi(moderationUrl)` | Passa o banco de teste e a URL da moderação a `createApp` e escuta em porta livre. Cada instância recebe sua própria configuração. |
+| `startTestApi(moderationUrl)` | Passa o banco de teste, a URL da moderação e `runMigrations:true` a `createApp`, e escuta em porta livre. Cada instância recebe sua própria configuração. |
 | `postAd(baseUrl, input)` | Faz `POST /ads` e devolve `{response, body}` já parseado. |
 | `getJson(baseUrl, path)` | Faz `GET` e devolve `{response, body}`. |
 | `deleteAds(db, ids)` | Remove somente as linhas criadas pelo teste. |

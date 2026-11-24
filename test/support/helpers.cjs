@@ -56,7 +56,13 @@ async function startModerationServer(handle) {
 }
 
 async function startTestApi(moderationUrl, { timeoutMs = 3000, backoffMs = 200 } = {}) {
-  const app = await createApp({ databaseUrl: testDatabaseUrl, moderationUrl, timeoutMs, backoffMs });
+  const app = await createApp({
+    databaseUrl: testDatabaseUrl,
+    moderationUrl,
+    timeoutMs,
+    backoffMs,
+    runMigrations: true,
+  });
   await app.listen(0, '127.0.0.1');
 
   let closed = false;
