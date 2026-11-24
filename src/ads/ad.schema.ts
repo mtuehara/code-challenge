@@ -62,7 +62,7 @@ export const listAdsQuerySchema = z.object({
   page: pageSchema,
   pageSize: pageSizeSchema,
   category: z.enum(AD_CATEGORIES, { message: 'Categoria inválida.' }).optional(),
-  status: z.enum(AD_STATUSES, { message: 'Status inválido.' }).default('approved'),
+  status: z.enum(AD_STATUSES, { message: 'Status inválido.' }).optional(),
 });
 
 export type ListAdsQuery = z.infer<typeof listAdsQuerySchema>;
