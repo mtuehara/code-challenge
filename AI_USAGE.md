@@ -136,3 +136,7 @@ Após o merge do PR #15, o candidato pediu ao Codex que revisasse todos os arqui
 ## T-010 • Configuração local
 
 O candidato pediu que o código lesse as variáveis de ambiente sem escrever em `process.env` durante a execução. O Codex identificou as atribuições no setup dos testes e passou a configuração por instância. Antes da correção, `node --test test/setup.test.cjs` falhou ao detectar a mudança de `DATABASE_URL` durante o cenário de healthcheck. Após a correção, `npm test` passou nos 12 testes. Uma verificação de inicialização obteve 200 em `/health` com arquivo local, com porta sobrescrita pelo terminal e com configuração exclusiva do terminal. Para verificar a CLI do seed, o teste apontou o arquivo para um banco inexistente e conferiu o nome do banco no erro de conexão.
+
+## T-011 • Organização das integrações
+
+O candidato escolheu as pastas para o cliente de moderação e a conexão do PostgreSQL. O Codex moveu os módulos, atualizou os imports e conferiu o diff dos arquivos movidos. Para verificar se algum import dependia de JavaScript compilado antes da mudança, executou `npm test` a partir de uma cópia dos arquivos versionados com `dist` inicialmente ausente. Os 12 testes passaram.

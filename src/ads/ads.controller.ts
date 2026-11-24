@@ -17,7 +17,7 @@ import {
   ListAdsQuery,
   listAdsQuerySchema,
 } from './ad.schema';
-import { ModerationProtocolError, ModerationUnavailableError } from './moderation.client';
+import { ModerationProtocolError, ModerationUnavailableError } from '../clients/moderation.client';
 import { ZodValidationPipe } from './zod-validation.pipe';
 
 @Controller('ads')

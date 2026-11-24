@@ -4,7 +4,7 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { Client } = require('pg');
-const { toCents } = require('../dist/ads/money');
+const { toCents } = require('../dist/utils/money');
 
 const defaultDatabaseUrl = 'postgres://anuncios:local_dev@127.0.0.1:5432/anuncios';
 const seedPath = path.join(__dirname, '..', 'backend', 'api-mock', 'seed', 'ads.json');

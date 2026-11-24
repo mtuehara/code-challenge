@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
-import { CreateAdInput } from './ad.schema';
+import { CreateAdInput } from '../ads/ad.schema';
 
 export type ModerationResult =
   | { status: 'approved' }

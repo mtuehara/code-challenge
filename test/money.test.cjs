@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { toCents, fromCents } = require('../dist/ads/money');
+const { toCents, fromCents } = require('../dist/utils/money');
 
 test('converte reais para centavos e volta sem multiplicação em ponto flutuante', () => {
   assert.equal(toCents(800.25), 80025);

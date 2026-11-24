@@ -131,7 +131,7 @@ Vale a pena para lógica pura e barata, sem Nest e sem banco. A T-005 já tem um
 ```js
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { toCents } = require('../dist/ads/money');
+const { toCents } = require('../dist/utils/money');
 
 test('converte reais para centavos sem float', () => {
   assert.equal(toCents(800.25), 80025);

@@ -1,5 +1,5 @@
 import { Ad } from './ad.entity';
-import { fromCents } from './money';
+import { fromCents } from '../utils/money';
 
 export interface AdResponse {
   id: string;
