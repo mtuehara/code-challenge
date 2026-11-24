@@ -54,7 +54,7 @@ Total: **12 testes**.
 |---|---|
 | `connectTestDatabase()` | Abre um `pg.Client` no `anuncios_test` e confere o nome do banco. |
 | `startModerationServer(handle)` | Sobe um `http.Server` em porta livre; grava `{method, path, input}` de cada requisição e responde o que o teste mandar. |
-| `startTestApi(moderationUrl)` | Define `DATABASE_URL`/`MODERATION_URL`, cria o Nest com `createApp()` e escuta em porta livre. |
+| `startTestApi(moderationUrl)` | Passa o banco de teste e a URL da moderação a `createApp` e escuta em porta livre. Cada instância recebe sua própria configuração. |
 | `postAd(baseUrl, input)` | Faz `POST /ads` e devolve `{response, body}` já parseado. |
 | `getJson(baseUrl, path)` | Faz `GET` e devolve `{response, body}`. |
 | `deleteAds(db, ids)` | Remove somente as linhas criadas pelo teste. |

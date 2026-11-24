@@ -5,10 +5,10 @@
   "scripts": {
     "build": "tsc",
     "prestart": "npm run build",
-    "start": "node dist/main.js",
+    "start": "node --env-file-if-exists=.env dist/main.js",
     "start:dev": "nodemon --watch src --watch tsconfig.json --ext ts,json --exec \"npm start\"",
     "test": "npm run build && node --test --test-concurrency=1 test/*.test.cjs",
-    "seed": "npm run build && node scripts/seed.cjs"
+    "seed": "npm run build && node --env-file-if-exists=.env scripts/seed.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11",

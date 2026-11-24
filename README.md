@@ -17,6 +17,8 @@ npm start
 
 Mantenha o terminal aberto. O Nest aplica as migrations ao iniciar. [GET /health](http://localhost:3000/health) retorna HTTP 200 com `{"status":"ok"}`. Para desenvolver com reinício automático, use `npm run start:dev` no lugar de `npm start`. Se a porta 3000 estiver ocupada, defina `$env:PORT = '3001'` no PowerShell e use essa porta nas chamadas abaixo. Se a política do PowerShell bloquear `npm.ps1`, use `npm.cmd`.
 
+Para personalizar o ambiente, copie [`.env.example`](.env.example) para `.env` na raiz (PowerShell: `Copy-Item .env.example .env`). O arquivo local está no `.gitignore`. A API e o seed carregam o arquivo opcional ao iniciar, usando o suporte nativo do Node 24. Variáveis já exportadas no terminal têm prioridade. Reinicie a aplicação após editar o arquivo. O exemplo contém a porta da API, as URLs locais e os tempos da moderação.
+
 O banco de desenvolvimento é `anuncios` na porta 5432, com volume persistente. A variável `DATABASE_URL` configura a conexão. A moderação usa `MODERATION_URL`, com padrão `http://localhost:8787`.
 
 ## Executar os testes
@@ -172,7 +174,7 @@ O `POST /ads` aguarda a moderação, mas não transforma falha técnica em 500 g
 | `429`, `5xx`, timeout ou erro de rede | tenta de novo uma vez; respeita `Retry-After` (teto de 1 s) no 429; depois de duas tentativas retorna **503** com `Retry-After: 1` e **não grava** |
 | `400`, `200` com status desconhecido ou `rejected` sem motivo textual preenchido | **502**, sem retry e sem gravar |
 
-O timeout por tentativa é 3 s e o backoff padrão é 200 ms. Em testes, `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` permitem reduzir esses valores. O pior caso é de aproximadamente 6–7 s; o caminho normal continua dominado pela latência do mock (100–2000 ms).
+O timeout por tentativa é 3 s e o backoff padrão é 200 ms. No ambiente local, `MODERATION_TIMEOUT_MS` e `MODERATION_RETRY_BACKOFF_MS` configuram esses valores. Os testes passam tempos menores diretamente à instância da API. O pior caso é de aproximadamente 6–7 s; o caminho normal continua dominado pela latência do mock (100–2000 ms).
 
 ## Seed de demonstração (T-009)
 

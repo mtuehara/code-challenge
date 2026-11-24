@@ -132,3 +132,7 @@ Na segunda correção, o Codex usou um servidor HTTP controlado para devolver um
 ## Revisão da documentação
 
 Após o merge do PR #15, o candidato pediu ao Codex que revisasse todos os arquivos Markdown. O Codex confrontou os estados das etapas com o histórico da main, o exemplo de listagem com as fixtures e o guia de execução com os scripts do projeto. As contagens registradas como evidência em cada etapa correspondem à suíte daquele PR.
+
+## T-010 • Configuração local
+
+O candidato pediu que o código lesse as variáveis de ambiente sem escrever em `process.env` durante a execução. O Codex identificou as atribuições no setup dos testes e passou a configuração por instância. Antes da correção, `node --test test/setup.test.cjs` falhou ao detectar a mudança de `DATABASE_URL` durante o cenário de healthcheck. Após a correção, `npm test` passou nos 12 testes. Uma verificação de inicialização obteve 200 em `/health` com arquivo local, com porta sobrescrita pelo terminal e com configuração exclusiva do terminal. Para verificar a CLI do seed, o teste apontou o arquivo para um banco inexistente e conferiu o nome do banco no erro de conexão.
